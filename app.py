@@ -49,6 +49,11 @@ def fetch_opensky():
             if resp.status_code == 200:
                 data = resp.json()
                 return data.get("states", [])
+            elif resp.status_code == 429:
+                # Rate limit – wait longer before retrying
+                wait = 30  # seconds
+                st.warning(f"OpenSky rate limit hit. Waiting {wait}s before retry (attempt {attempt+1}/{max_retries})")
+                time.sleep(wait)
             else:
                 st.warning(f"OpenSky returned status {resp.status_code} (attempt {attempt+1})")
         except requests.exceptions.Timeout:
@@ -56,10 +61,12 @@ def fetch_opensky():
         except Exception as e:
             st.warning(f"OpenSky attempt {attempt+1} failed: {e}")
         
-        if attempt < max_retries - 1:
+        # Only sleep if not already slept for rate limit
+        if attempt < max_retries - 1 and 'resp' in locals() and resp is not None and resp.status_code != 429:
             wait = 2 ** attempt  # 1, 2, 4 seconds
             time.sleep(wait)
     
+    st.error("❌ OpenSky API is currently rate‑limiting or unavailable. Please try again later.")
     return None
 
 def filter_aircraft(states, radar_lat, radar_lon, max_range_km):

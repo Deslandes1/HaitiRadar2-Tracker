@@ -98,9 +98,8 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
-@st.cache_data(ttl=120, show_spinner=False)   # longer cache to avoid rate limits
+@st.cache_data(ttl=120, show_spinner=False)
 def fetch_opensky():
-    """Get raw states from OpenSky API with retry and longer timeout."""
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
     max_retries = 3
@@ -113,8 +112,7 @@ def fetch_opensky():
                 data = resp.json()
                 return data.get("states", [])
             elif resp.status_code == 429:
-                wait = 60   # longer wait for rate limit
-                # Use a toast instead of a big warning
+                wait = 60
                 st.toast(f"OpenSky rate limit. Waiting {wait}s...", icon="⏳")
                 time.sleep(wait)
             else:
@@ -349,6 +347,10 @@ if "last_update" not in st.session_state:
     st.session_state.last_update = None
 if "data_source" not in st.session_state:
     st.session_state.data_source = "Live"
+if "prev_lat" not in st.session_state:
+    st.session_state.prev_lat = None
+if "prev_lon" not in st.session_state:
+    st.session_state.prev_lon = None
 
 # Get query parameters for geolocation
 query_params = st.query_params
@@ -364,6 +366,16 @@ if geo_lat is not None and geo_lon is not None:
 else:
     geo_lat = None
     geo_lon = None
+
+# If location changed via query params, clear cache to force fresh data
+if geo_lat is not None and geo_lon is not None:
+    if (st.session_state.prev_lat != geo_lat or st.session_state.prev_lon != geo_lon):
+        st.cache_data.clear()
+        st.session_state.last_aircraft = []   # discard old cached data
+        st.session_state.last_update = None
+        st.toast("📍 Location updated – refreshing data...", icon="🔄")
+    st.session_state.prev_lat = geo_lat
+    st.session_state.prev_lon = geo_lon
 
 with st.sidebar:
     st.header("📡 Radar Settings")
@@ -407,7 +419,6 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-    # Show data source indicator
     st.divider()
     if st.session_state.data_source == "Live":
         st.success("🟢 Live data")

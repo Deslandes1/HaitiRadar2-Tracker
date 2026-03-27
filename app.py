@@ -315,6 +315,7 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
 st.title("🔴 GLOBAL SURVEILLANCE RADAR")
 st.markdown("**Military & Drone Detection** | Real‑time airspace monitoring")
 st.markdown("🇭🇹 Owner: Gesner Deslandes – Licensed Software")
+st.markdown("🏢 **GlobalInternet.py**")
 
 # Session state for aircraft and UI
 if "last_aircraft" not in st.session_state:

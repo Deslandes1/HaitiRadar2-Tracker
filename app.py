@@ -420,7 +420,10 @@ with st.sidebar:
 
     st.divider()
     st.caption("© 2025 Gesner Deslandes – Radar Software")
-    st.caption("For support: your-email@example.com")
+    st.markdown("**Support & Payment**")
+    st.markdown("📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`")
+    st.markdown("📧 **Email**: `deslandes78@gmail.com`")
+    st.caption("For technical support or to purchase a license, contact via email or Moncash.")
 
 # Fetch data
 with st.spinner("Fetching aircraft data..."):

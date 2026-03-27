@@ -116,7 +116,6 @@ def bearing(lat1, lon1, lat2, lon2):
 def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
     """
     Polar radar plot with rotating sweep line (angle based on current second).
-    The sweep rotates continuously, independent of aircraft data.
     """
     r_vals = []
     theta_vals = []
@@ -144,7 +143,6 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
             name='Aircraft'
         ))
 
-    # Base layout
     fig.update_layout(
         polar=dict(
             radialaxis=dict(
@@ -283,12 +281,61 @@ if "last_aircraft" not in st.session_state:
 if "last_update" not in st.session_state:
     st.session_state.last_update = None
 
+# Get query parameters for geolocation
+query_params = st.experimental_get_query_params()
+if "lat" in query_params and "lon" in query_params:
+    try:
+        geo_lat = float(query_params["lat"][0])
+        geo_lon = float(query_params["lon"][0])
+    except:
+        geo_lat = None
+        geo_lon = None
+else:
+    geo_lat = None
+    geo_lon = None
+
 with st.sidebar:
     st.header("📡 Radar Settings")
-    radar_lat = st.number_input("Radar Latitude", value=40.7128, format="%.5f")
-    radar_lon = st.number_input("Radar Longitude", value=-74.0060, format="%.5f")
+    # Pre‑fill with geo coordinates if available, otherwise keep defaults
+    if geo_lat is not None and geo_lon is not None:
+        radar_lat = st.number_input("Radar Latitude", value=geo_lat, format="%.5f")
+        radar_lon = st.number_input("Radar Longitude", value=geo_lon, format="%.5f")
+    else:
+        radar_lat = st.number_input("Radar Latitude", value=40.7128, format="%.5f")
+        radar_lon = st.number_input("Radar Longitude", value=-74.0060, format="%.5f")
     max_range = st.number_input("Max Range (km)", min_value=30, max_value=300, value=120, step=10)
     refresh_sec = st.number_input("Refresh Interval (sec)", min_value=3, max_value=60, value=60, step=1)
+
+    # Geolocation button with custom JavaScript
+    if st.button("📍 My Location", use_container_width=True):
+        # JavaScript to get location and set query parameters
+        st.markdown(
+            """
+            <script>
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        // Redirect to same page with query params
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('lat', lat);
+                        url.searchParams.set('lon', lon);
+                        window.location.href = url.href;
+                    },
+                    (error) => {
+                        alert("Geolocation error: " + error.message);
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+            </script>
+            """,
+            unsafe_allow_html=True
+        )
+        # Stop further execution to allow the redirect to happen
+        st.stop()
 
     if st.button("🔄 Refresh Now", use_container_width=True):
         st.cache_data.clear()
@@ -302,16 +349,13 @@ states = fetch_opensky()
 
 # Determine which aircraft to display
 if states is not None:
-    # New data received
     aircraft = filter_aircraft(states, radar_lat, radar_lon, max_range)
     st.session_state.last_aircraft = aircraft
     st.session_state.last_update = datetime.now()
 elif st.session_state.last_aircraft:
-    # No new data, but we have cached data
     aircraft = st.session_state.last_aircraft
     st.warning("⚠️ Using cached data from previous successful fetch. OpenSky API is currently rate‑limiting.")
 else:
-    # No new data and no cached data
     aircraft = []
     st.warning("⚠️ No data available. Radar is searching but no objects detected yet. Try adjusting range or waiting for API availability.")
 

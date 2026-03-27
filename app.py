@@ -214,11 +214,15 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         zoom=8,
         height=600
     )
-    fig.data[0].marker = dict(
-        size=df['size'],
-        color=df['color'],
-        symbol='circle',
-        line=dict(width=1, color='white')
+    # Update marker style using update_traces
+    fig.update_traces(
+        marker=dict(
+            size=df['size'].tolist(),
+            color=df['color'].tolist(),
+            symbol='circle',
+            line=dict(width=1, color='white')
+        ),
+        selector=dict(type='scattermapbox')
     )
 
     fig.add_trace(go.Scattermapbox(

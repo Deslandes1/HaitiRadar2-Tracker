@@ -16,177 +16,23 @@ st.set_page_config(page_title="SURVEILLANCE RADAR - Military & Drone Detection",
 # Known military ICAO hex ranges (prefixes)
 # These are common ranges; not exhaustive but a good starting point
 MILITARY_ICAO_PREFIXES = [
-    "AE",  # US military
-    "AD",  # US military (some)
-    "AF",  # US Air Force / misc
-    "3C",  # Germany
-    "3E",  # Germany
-    "33",  # Italy
-    "34",  # Spain
-    "38",  # Turkey
-    "39",  # France
-    "40",  # UK
-    "43",  # UK
-    "44",  # UK
-    "45",  # Denmark
-    "46",  # Sweden
-    "48",  # Poland
-    "4B",  # Turkey
-    "4C",  # Israel
-    "4D",  # Israel
-    "4E",  # Romania
-    "4F",  # Saudi Arabia
-    "50",  # Jordan
-    "51",  # UAE
-    "52",  # Kuwait
-    "53",  # Qatar
-    "54",  # Australia
-    "55",  # Taiwan
-    "56",  # Switzerland
-    "57",  # Singapore
-    "58",  # South Africa
-    "59",  # South Korea
-    "5A",  # China
-    "5B",  # Cyprus
-    "5C",  # Malta
-    "5D",  # India
-    "5E",  # Malaysia
-    "5F",  # Indonesia
-    "60",  # Pakistan
-    "61",  # Sri Lanka
-    "62",  # Sudan
-    "63",  # Ethiopia
-    "64",  # Kenya
-    "65",  # Tanzania
-    "66",  # Uganda
-    "67",  # Zimbabwe
-    "68",  # Zambia
-    "69",  # Namibia
-    "6A",  # Botswana
-    "6B",  # Mozambique
-    "6C",  # Malawi
-    "6D",  # Lesotho
-    "6E",  # Swaziland
-    "6F",  # Mauritius
-    "70",  # Somalia
-    "71",  # Djibouti
-    "72",  # Eritrea
-    "73",  # Rwanda
-    "74",  # Burundi
-    "75",  # Comoros
-    "76",  # Seychelles
-    "77",  # Maldives
-    "78",  # Singapore
-    "79",  # Hong Kong
-    "7A",  # Macau
-    "7B",  # Mongolia
-    "7C",  # North Korea
-    "7D",  # South Korea
-    "7E",  # Japan
-    "7F",  # Philippines
-    "80",  # Vietnam
-    "81",  # Cambodia
-    "82",  # Laos
-    "83",  # Myanmar
-    "84",  # Thailand
-    "85",  # Taiwan
-    "86",  # China
-    "87",  # China
-    "88",  # China
-    "89",  # China
-    "8A",  # China
-    "8B",  # China
-    "8C",  # China
-    "8D",  # China
-    "8E",  # China
-    "8F",  # China
-    "90",  # China
-    "91",  # China
-    "92",  # China
-    "93",  # China
-    "94",  # China
-    "95",  # China
-    "96",  # China
-    "97",  # China
-    "98",  # China
-    "99",  # China
-    "9A",  # China
-    "9B",  # China
-    "9C",  # China
-    "9D",  # China
-    "9E",  # China
-    "9F",  # China
-    "A0",  # Russia
-    "A1",  # Russia
-    "A2",  # Russia
-    "A3",  # Russia
-    "A4",  # Russia
-    "A5",  # Russia
-    "A6",  # Russia
-    "A7",  # Russia
-    "A8",  # Russia
-    "A9",  # Russia
-    "AA",  # Russia
-    "AB",  # Russia
-    "AC",  # Russia
+    "AE", "AD", "AF", "3C", "3E", "33", "34", "38", "39", "40", "43", "44", "45", "46", "48",
+    "4B", "4C", "4D", "4E", "4F", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
+    "5A", "5B", "5C", "5D", "5E", "5F", "60", "61", "62", "63", "64", "65", "66", "67", "68",
+    "69", "6A", "6B", "6C", "6D", "6E", "6F", "70", "71", "72", "73", "74", "75", "76", "77",
+    "78", "79", "7A", "7B", "7C", "7D", "7E", "7F", "80", "81", "82", "83", "84", "85", "86",
+    "87", "88", "89", "8A", "8B", "8C", "8D", "8E", "8F", "90", "91", "92", "93", "94", "95",
+    "96", "97", "98", "99", "9A", "9B", "9C", "9D", "9E", "9F", "A0", "A1", "A2", "A3", "A4",
+    "A5", "A6", "A7", "A8", "A9", "AA", "AB", "AC",
 ]
 
 # Known drone ICAO prefixes (examples)
 DRONE_ICAO_PREFIXES = [
-    "4CAA",  # DJI
-    "4CAB",  # DJI
-    "4CAC",  # DJI
-    "4CAD",  # DJI
-    "4CAE",  # DJI
-    "4CAF",  # DJI
-    "4CB0",  # DJI
-    "4CB1",  # DJI
-    "4CB2",  # DJI
-    "4CB3",  # DJI
-    "4CB4",  # DJI
-    "4CB5",  # DJI
-    "4CB6",  # DJI
-    "4CB7",  # DJI
-    "4CB8",  # DJI
-    "4CB9",  # DJI
-    "4CBA",  # DJI
-    "4CBB",  # DJI
-    "4CBC",  # DJI
-    "4CBD",  # DJI
-    "4CBE",  # DJI
-    "4CBF",  # DJI
-    "4CC0",  # DJI
-    "4CC1",  # DJI
-    "4CC2",  # DJI
-    "4CC3",  # DJI
-    "4CC4",  # DJI
-    "4CC5",  # DJI
-    "4CC6",  # DJI
-    "4CC7",  # DJI
-    "4CC8",  # DJI
-    "4CC9",  # DJI
-    "4CCA",  # DJI
-    "4CCB",  # DJI
-    "4CCC",  # DJI
-    "4CCD",  # DJI
-    "4CCE",  # DJI
-    "4CCF",  # DJI
-    "4CD0",  # DJI
-    "4CD1",  # DJI
-    "4CD2",  # DJI
-    "4CD3",  # DJI
-    "4CD4",  # DJI
-    "4CD5",  # DJI
-    "4CD6",  # DJI
-    "4CD7",  # DJI
-    "4CD8",  # DJI
-    "4CD9",  # DJI
-    "4CDA",  # DJI
-    "4CDB",  # DJI
-    "4CDC",  # DJI
-    "4CDD",  # DJI
-    "4CDE",  # DJI
-    "4CDF",  # DJI
+    "4CAA", "4CAB", "4CAC", "4CAD", "4CAE", "4CAF", "4CB0", "4CB1", "4CB2", "4CB3", "4CB4",
+    "4CB5", "4CB6", "4CB7", "4CB8", "4CB9", "4CBA", "4CBB", "4CBC", "4CBD", "4CBE", "4CBF",
+    "4CC0", "4CC1", "4CC2", "4CC3", "4CC4", "4CC5", "4CC6", "4CC7", "4CC8", "4CC9", "4CCA",
+    "4CCB", "4CCC", "4CCD", "4CCE", "4CCF", "4CD0", "4CD1", "4CD2", "4CD3", "4CD4", "4CD5",
+    "4CD6", "4CD7", "4CD8", "4CD9", "4CDA", "4CDB", "4CDC", "4CDD", "4CDE", "4CDF",
 ]
 
 def classify_aircraft(icao24, callsign, velocity, altitude):
@@ -206,7 +52,7 @@ def classify_aircraft(icao24, callsign, velocity, altitude):
             break
 
     # Military by callsign keywords
-    mil_keywords = ["AF", "NAVY", "ARMY", "AIR FORCE", "MIL", "RAAF", "RAF", "LUFT", "ARMEE", "FAP", "FAB", "FAC", "FAD", "FAE", "FAG", "FAH", "FAI", "FAJ", "FAK", "FAL", "FAM", "FAN", "FAO", "FAP", "FAQ", "FAR", "FAS", "FAT", "FAU", "FAV", "FAW", "FAX", "FAY", "FAZ", "FBA", "FBB", "FBC", "FBD", "FBE", "FBF", "FBG", "FBH", "FBI", "FBJ", "FBK", "FBL", "FBM", "FBN", "FBO", "FBP", "FBQ", "FBR", "FBS", "FBT", "FBU", "FBV", "FBW", "FBX", "FBY", "FBZ", "FCA", "FCB", "FCC", "FCD", "FCE", "FCF", "FCG", "FCH", "FCI", "FCJ", "FCK", "FCL", "FCM", "FCN", "FCO", "FCP", "FCQ", "FCR", "FCS", "FCT", "FCU", "FCV", "FCW", "FCX", "FCY", "FCZ"]
+    mil_keywords = ["AF", "NAVY", "ARMY", "AIR FORCE", "MIL", "RAAF", "RAF", "LUFT", "ARMEE"]
     if any(kw in callsign_upper for kw in mil_keywords):
         is_military = True
 
@@ -537,7 +383,8 @@ with st.sidebar:
     else:
         radar_lat = st.number_input("Radar Latitude", value=40.7128, format="%.5f")
         radar_lon = st.number_input("Radar Longitude", value=-74.0060, format="%.5f")
-    max_range = st.number_input("Max Range (km)", min_value=30, max_value=300, value=120, step=10)
+    # Increased max range to 2000 km
+    max_range = st.number_input("Max Range (km)", min_value=30, max_value=2000, value=500, step=50)
     refresh_sec = st.number_input("Refresh Interval (sec)", min_value=3, max_value=60, value=60, step=1)
 
     if st.button("📍 My Location", use_container_width=True):

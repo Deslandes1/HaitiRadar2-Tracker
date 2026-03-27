@@ -116,13 +116,9 @@ def fetch_opensky():
 def fetch_flightradar24(api_key):
     """Flightradar24 API (global coverage) – requires a paid API key."""
     try:
-        # Using the official flightradar24 Python SDK if installed
-        # Otherwise, fallback to a dummy example (you'll need to implement actual call)
-        # For now, we'll try to import the SDK and use it.
         from flightradar24 import FlightRadar24API
-        fr24 = FlightRadar24API(api_key)  # you may need to pass key
+        fr24 = FlightRadar24API(api_key)
         flights = fr24.get_flights()
-        # Convert to a list of dicts in the same format as OpenSky
         aircraft_list = []
         for f in flights:
             aircraft_list.append({
@@ -144,13 +140,10 @@ def fetch_flightradar24(api_key):
 def fetch_data(api_key=None):
     """Main fetch function – tries Flightradar24 if key provided, else OpenSky."""
     if api_key:
-        # Try Flightradar24 (global)
         fr_data = fetch_flightradar24(api_key)
         if fr_data is not None:
             return fr_data
-        # If fails, fallback to OpenSky
         st.info("Flightradar24 not available – falling back to OpenSky (limited range).")
-    # Fallback to OpenSky
     return fetch_opensky()
 
 # ---------- Radar visualisation ----------
@@ -361,7 +354,6 @@ if geo_lat is not None and geo_lon is not None:
 
 with st.sidebar:
     st.header("📡 Radar Settings")
-    # Radar center coordinates
     if geo_lat is not None and geo_lon is not None:
         radar_lat = st.number_input("Radar Latitude", value=geo_lat, format="%.5f")
         radar_lon = st.number_input("Radar Longitude", value=geo_lon, format="%.5f")
@@ -419,21 +411,29 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.caption("© 2025 Gesner Deslandes – Radar Software")
-    st.markdown("**Support & Payment**")
+    st.markdown("## 📜 **Software License**")
+    st.markdown("""
+    **Proprietary Commercial Software**  
+    Copyright © 2025 Gesner Deslandes. All rights reserved.
+
+    This software is **licensed**, not sold.  
+    You may use it only after purchasing a valid license from the author.
+
+    **Unauthorized copying, distribution, or resale is strictly prohibited.**
+
+    For licensing, support, or payments:
+    """)
     st.markdown("📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`")
     st.markdown("📧 **Email**: `deslandes78@gmail.com`")
-    st.caption("For technical support or to purchase a license, contact via email or Moncash.")
+    st.caption("By using this software you agree to the terms above.")
 
 # Fetch data
 with st.spinner("Fetching aircraft data..."):
     raw_data = fetch_data(api_key if api_key else None)
 
 if raw_data is not None:
-    # Convert to list of aircraft with classification
     aircraft = []
     if api_key:
-        # Data from Flightradar24 is already a list of dicts with keys: icao24, callsign, lat, lon, geo_alt, velocity, heading, vertical_rate, on_ground
         for item in raw_data:
             dist = haversine(radar_lat, radar_lon, item["lat"], item["lon"])
             if dist <= max_range:
@@ -446,7 +446,6 @@ if raw_data is not None:
                     "is_drone": classification["is_drone"]
                 })
     else:
-        # Data from OpenSky is list of arrays (states)
         for s in raw_data:
             icao24 = s[0]
             callsign = s[1].strip() if s[1] else None
@@ -457,7 +456,6 @@ if raw_data is not None:
             velocity = s[9]
             heading = s[10]
             vert_rate = s[11]
-
             if lat is None or lon is None:
                 continue
             dist = haversine(radar_lat, radar_lon, lat, lon)
@@ -483,7 +481,6 @@ if raw_data is not None:
     st.session_state.last_update = datetime.now()
     st.session_state.data_source = "Flightradar24" if api_key else "OpenSky"
 else:
-    # Use cached data if available
     if st.session_state.last_aircraft:
         aircraft = st.session_state.last_aircraft
         st.warning("⚠️ Using cached data (API unavailable)")

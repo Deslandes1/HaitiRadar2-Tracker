@@ -317,7 +317,7 @@ st.markdown("**Military & Drone Detection** | Real‑time airspace monitoring")
 st.markdown("🇭🇹 Owner: Gesner Deslandes – Licensed Software")
 st.markdown("🏢 **GlobalInternet.py**")
 
-# Session state for aircraft and UI
+# Session state for cached data and error dismissal
 if "last_aircraft" not in st.session_state:
     st.session_state.last_aircraft = []
 if "last_update" not in st.session_state:
@@ -328,6 +328,8 @@ if "prev_lat" not in st.session_state:
     st.session_state.prev_lat = None
 if "prev_lon" not in st.session_state:
     st.session_state.prev_lon = None
+if "dismiss_error" not in st.session_state:
+    st.session_state.dismiss_error = False
 
 # Geolocation from URL parameters
 query_params = st.query_params
@@ -349,6 +351,7 @@ if geo_lat is not None and geo_lon is not None:
         st.cache_data.clear()
         st.session_state.last_aircraft = []
         st.session_state.last_update = None
+        st.session_state.dismiss_error = False  # reset on location change
         st.toast("📍 Location updated – refreshing data...", icon="🔄")
     st.session_state.prev_lat = geo_lat
     st.session_state.prev_lon = geo_lon
@@ -409,6 +412,7 @@ with st.sidebar:
 
     if st.button("🔄 Refresh Now", use_container_width=True):
         st.cache_data.clear()
+        st.session_state.dismiss_error = False  # reset error on manual refresh
         st.rerun()
 
     st.divider()
@@ -481,72 +485,93 @@ if raw_data is not None:
     st.session_state.last_aircraft = aircraft
     st.session_state.last_update = datetime.now()
     st.session_state.data_source = "Flightradar24" if api_key else "OpenSky"
+    # Reset error flag if we got data
+    st.session_state.dismiss_error = False
 else:
+    # No fresh data
     if st.session_state.last_aircraft:
         aircraft = st.session_state.last_aircraft
         st.warning("⚠️ Using cached data (API unavailable)")
+        st.session_state.dismiss_error = False  # no error, we have cached
     else:
         aircraft = []
-        st.error("❌ No data available. Check your internet connection or API key.")
-
-# -------------------------------------------------------------------
-# Display radar and table
-# -------------------------------------------------------------------
-
-left_col, right_col = st.columns([0.5, 0.5])
-
-with left_col:
-    st.subheader("📡 RADAR SWEEP VIEW")
-    polar_fig = create_radar_polar(aircraft, radar_lat, radar_lon, max_range)
-    st.plotly_chart(polar_fig, use_container_width=True)
-
-    st.subheader(f"📋 Detected Objects ({len(aircraft)})")
-    if aircraft:
-        df_table = pd.DataFrame(aircraft)
-        display_df = df_table[["callsign", "lat", "lon", "altitude", "velocity", "heading", "type", "distance"]].copy()
-        display_df["altitude"] = display_df["altitude"].apply(lambda x: f"{x:.0f}m" if x is not None else "N/A")
-        display_df["velocity"] = display_df["velocity"].apply(lambda x: f"{x:.1f}m/s" if x is not None else "?")
-        display_df["heading"] = display_df["heading"].apply(lambda x: f"{x:.0f}°" if x is not None else "---")
-        display_df["distance"] = display_df["distance"].apply(lambda x: f"{x:.0f}km")
-        display_df = display_df.rename(columns={
-            "callsign": "CALLSIGN/ID",
-            "lat": "LATITUDE",
-            "lon": "LONGITUDE",
-            "altitude": "ALT (m)",
-            "velocity": "SPEED (m/s)",
-            "heading": "HEADING",
-            "type": "TYPE",
-            "distance": "DISTANCE"
-        })
-        st.dataframe(display_df, use_container_width=True, height=400)
-
-        selected_callsign = st.selectbox("Select object for detailed report", df_table["callsign"].tolist())
-        selected_ac = df_table[df_table["callsign"] == selected_callsign].iloc[0]
-
-        st.subheader("📋 Detailed Report")
-        col1, col2 = st.columns(2)
-        col1.metric("✈️ OBJECT", selected_ac["callsign"])
-        col2.metric("🆔 ICAO24", selected_ac["icao24"] if selected_ac["icao24"] else "N/A")
-        col1.metric("📍 LAT/LON", f"{selected_ac['lat']:.5f}, {selected_ac['lon']:.5f}")
-        alt_text = f"{selected_ac['altitude']:.0f} m ({selected_ac['altitude']*3.28084:.0f} ft)" if selected_ac["altitude"] else "unknown"
-        col2.metric("📏 ALTITUDE", alt_text)
-        speed_text = f"{selected_ac['velocity']:.2f} m/s ({selected_ac['velocity']*3.6:.1f} km/h)" if selected_ac["velocity"] else "unknown"
-        col1.metric("💨 SPEED", speed_text)
-        heading_text = f"{selected_ac['heading']:.1f}° (true)" if selected_ac["heading"] else "unknown"
-        col2.metric("🧭 HEADING", heading_text)
-        col1.metric("📡 DISTANCE", f"{selected_ac['distance']:.0f} km")
-        col2.metric("📋 TYPE", selected_ac["type"])
-        
-        st.markdown("**🛡️ Classification**")
-        if selected_ac["is_military"]:
-            st.success("🔫 **Military Aircraft** – flagged by ICAO range or callsign keywords.")
-        elif selected_ac["is_drone"]:
-            st.warning("🚁 **Drone / UAV** – flagged by ICAO range, callsign keywords, or low‑altitude/speed behaviour.")
+        # Show error only if not dismissed
+        if not st.session_state.dismiss_error:
+            error_placeholder = st.empty()
+            with error_placeholder.container():
+                st.error("❌ No data available. Check your internet connection or API key.")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("Dismiss", key="dismiss_error_btn"):
+                        st.session_state.dismiss_error = True
+                        st.rerun()
+                with col2:
+                    if st.button("Retry", key="retry_btn"):
+                        st.cache_data.clear()
+                        st.session_state.dismiss_error = False
+                        st.rerun()
         else:
-            st.info("✈️ **Civilian Aircraft** – no military or drone indicators.")
-        st.caption("Data source: " + ("Flightradar24 (global)" if api_key else "OpenSky Network (regional)"))
+            st.info("Error dismissed. Click 'Refresh Now' to retry.")
 
-        report_content = f"""
+# -------------------------------------------------------------------
+# Display radar and table (only if aircraft is defined)
+# -------------------------------------------------------------------
+
+if 'aircraft' in locals():
+    left_col, right_col = st.columns([0.5, 0.5])
+
+    with left_col:
+        st.subheader("📡 RADAR SWEEP VIEW")
+        polar_fig = create_radar_polar(aircraft, radar_lat, radar_lon, max_range)
+        st.plotly_chart(polar_fig, use_container_width=True)
+
+        st.subheader(f"📋 Detected Objects ({len(aircraft)})")
+        if aircraft:
+            df_table = pd.DataFrame(aircraft)
+            display_df = df_table[["callsign", "lat", "lon", "altitude", "velocity", "heading", "type", "distance"]].copy()
+            display_df["altitude"] = display_df["altitude"].apply(lambda x: f"{x:.0f}m" if x is not None else "N/A")
+            display_df["velocity"] = display_df["velocity"].apply(lambda x: f"{x:.1f}m/s" if x is not None else "?")
+            display_df["heading"] = display_df["heading"].apply(lambda x: f"{x:.0f}°" if x is not None else "---")
+            display_df["distance"] = display_df["distance"].apply(lambda x: f"{x:.0f}km")
+            display_df = display_df.rename(columns={
+                "callsign": "CALLSIGN/ID",
+                "lat": "LATITUDE",
+                "lon": "LONGITUDE",
+                "altitude": "ALT (m)",
+                "velocity": "SPEED (m/s)",
+                "heading": "HEADING",
+                "type": "TYPE",
+                "distance": "DISTANCE"
+            })
+            st.dataframe(display_df, use_container_width=True, height=400)
+
+            selected_callsign = st.selectbox("Select object for detailed report", df_table["callsign"].tolist())
+            selected_ac = df_table[df_table["callsign"] == selected_callsign].iloc[0]
+
+            st.subheader("📋 Detailed Report")
+            col1, col2 = st.columns(2)
+            col1.metric("✈️ OBJECT", selected_ac["callsign"])
+            col2.metric("🆔 ICAO24", selected_ac["icao24"] if selected_ac["icao24"] else "N/A")
+            col1.metric("📍 LAT/LON", f"{selected_ac['lat']:.5f}, {selected_ac['lon']:.5f}")
+            alt_text = f"{selected_ac['altitude']:.0f} m ({selected_ac['altitude']*3.28084:.0f} ft)" if selected_ac["altitude"] else "unknown"
+            col2.metric("📏 ALTITUDE", alt_text)
+            speed_text = f"{selected_ac['velocity']:.2f} m/s ({selected_ac['velocity']*3.6:.1f} km/h)" if selected_ac["velocity"] else "unknown"
+            col1.metric("💨 SPEED", speed_text)
+            heading_text = f"{selected_ac['heading']:.1f}° (true)" if selected_ac["heading"] else "unknown"
+            col2.metric("🧭 HEADING", heading_text)
+            col1.metric("📡 DISTANCE", f"{selected_ac['distance']:.0f} km")
+            col2.metric("📋 TYPE", selected_ac["type"])
+            
+            st.markdown("**🛡️ Classification**")
+            if selected_ac["is_military"]:
+                st.success("🔫 **Military Aircraft** – flagged by ICAO range or callsign keywords.")
+            elif selected_ac["is_drone"]:
+                st.warning("🚁 **Drone / UAV** – flagged by ICAO range, callsign keywords, or low‑altitude/speed behaviour.")
+            else:
+                st.info("✈️ **Civilian Aircraft** – no military or drone indicators.")
+            st.caption("Data source: " + ("Flightradar24 (global)" if api_key else "OpenSky Network (regional)"))
+
+            report_content = f"""
 SURVEILLANCE REPORT
 ===================
 Object: {selected_ac['callsign']}
@@ -561,24 +586,24 @@ Heading: {heading_text}
 Time of report: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 Data source: {st.session_state.data_source}
 """
-        st.download_button(
-            label="📥 Download Report (TXT)",
-            data=report_content,
-            file_name=f"{selected_ac['callsign']}_report.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-    else:
-        st.info("No aircraft detected within current range. Try increasing the range or check your location.")
+            st.download_button(
+                label="📥 Download Report (TXT)",
+                data=report_content,
+                file_name=f"{selected_ac['callsign']}_report.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+        else:
+            st.info("No aircraft detected within current range. Try increasing the range or check your location.")
 
-with right_col:
-    st.subheader("🗺️ Radar Coverage Map")
-    map_fig = create_map(aircraft, radar_lat, radar_lon, max_range)
-    st.plotly_chart(map_fig, use_container_width=True)
-    if st.session_state.last_update:
-        st.caption(f"📡 Last update: {st.session_state.last_update.strftime('%H:%M:%S')} | Range: {max_range} km | Source: {st.session_state.data_source}")
-    else:
-        st.caption(f"📡 Range: {max_range} km | Source: {st.session_state.data_source}")
+    with right_col:
+        st.subheader("🗺️ Radar Coverage Map")
+        map_fig = create_map(aircraft, radar_lat, radar_lon, max_range)
+        st.plotly_chart(map_fig, use_container_width=True)
+        if st.session_state.last_update:
+            st.caption(f"📡 Last update: {st.session_state.last_update.strftime('%H:%M:%S')} | Range: {max_range} km | Source: {st.session_state.data_source}")
+        else:
+            st.caption(f"📡 Range: {max_range} km | Source: {st.session_state.data_source}")
 
 if refresh_sec > 0:
     st.markdown(

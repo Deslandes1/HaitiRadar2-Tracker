@@ -36,18 +36,30 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
 @st.cache_data(ttl=30)
 def fetch_opensky():
-    """Get raw states from OpenSky API (with retry)."""
+    """Get raw states from OpenSky API with retry and longer timeout."""
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
-    for attempt in range(2):
+    max_retries = 3
+    timeout = 20  # seconds
+
+    for attempt in range(max_retries):
         try:
-            resp = requests.get(url, headers=headers, timeout=10)
+            resp = requests.get(url, headers=headers, timeout=timeout)
             if resp.status_code == 200:
                 data = resp.json()
                 return data.get("states", [])
+            else:
+                st.warning(f"OpenSky returned status {resp.status_code} (attempt {attempt+1})")
+        except requests.exceptions.Timeout:
+            st.warning(f"OpenSky connection timeout (attempt {attempt+1}/{max_retries})")
         except Exception as e:
             st.warning(f"OpenSky attempt {attempt+1} failed: {e}")
-            time.sleep(1)
+        
+        # Wait before retrying: exponential backoff
+        if attempt < max_retries - 1:
+            wait = 2 ** attempt  # 1, 2, 4 seconds
+            time.sleep(wait)
+    
     return None
 
 def filter_aircraft(states, radar_lat, radar_lon, max_range_km):

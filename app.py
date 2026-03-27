@@ -66,7 +66,7 @@ def fetch_opensky():
             wait = 2 ** attempt  # 1, 2, 4 seconds
             time.sleep(wait)
     
-    st.error("❌ OpenSky API is currently rate‑limiting or unavailable. Please try again later.")
+    st.error("❌ OpenSky API is currently rate‑limiting or unavailable. Using cached data if available.")
     return None
 
 def filter_aircraft(states, radar_lat, radar_lon, max_range_km):
@@ -280,6 +280,12 @@ st.title("🔴 GROUND RADAR (ADS‑B)")
 st.markdown("Live tracking | Real aircraft & drones with transponders | No simulation")
 st.markdown("🇭🇹 Owner: Gesner Deslandes")
 
+# Initialise session state for cached aircraft
+if "last_aircraft" not in st.session_state:
+    st.session_state.last_aircraft = []
+if "last_update" not in st.session_state:
+    st.session_state.last_update = None
+
 with st.sidebar:
     st.header("📡 Radar Settings")
     radar_lat = st.number_input("Radar Latitude", value=40.7128, format="%.5f")
@@ -295,12 +301,24 @@ with st.sidebar:
     st.markdown("Powered by [OpenSky Network](https://opensky-network.org)")
 
 states = fetch_opensky()
+
 if states is None:
-    st.error("❌ Failed to fetch data from OpenSky API. Please try again later.")
-    st.stop()
+    # No new data: use cached data if available
+    if st.session_state.last_aircraft:
+        aircraft = st.session_state.last_aircraft
+        st.warning("⚠️ Using cached data from previous successful fetch. OpenSky API is currently rate‑limiting.")
+        # Show a banner but keep the dashboard
+    else:
+        aircraft = []
+        st.error("❌ Unable to fetch data from OpenSky API and no cached data available.")
+else:
+    # New data received
+    aircraft = filter_aircraft(states, radar_lat, radar_lon, max_range)
+    # Store in session state
+    st.session_state.last_aircraft = aircraft
+    st.session_state.last_update = datetime.now()
 
-aircraft = filter_aircraft(states, radar_lat, radar_lon, max_range)
-
+# Now always render the dashboard
 left_col, right_col = st.columns([0.5, 0.5])
 
 with left_col:
@@ -381,7 +399,10 @@ with right_col:
     st.subheader("🗺️ Radar Coverage Map")
     map_fig = create_map(aircraft, radar_lat, radar_lon, max_range)
     st.plotly_chart(map_fig, use_container_width=True)
-    st.caption(f"📡 Last update: {pd.Timestamp.now().strftime('%H:%M:%S')} | Range: {max_range} km")
+    if st.session_state.last_update:
+        st.caption(f"📡 Last update: {st.session_state.last_update.strftime('%H:%M:%S')} | Range: {max_range} km")
+    else:
+        st.caption(f"📡 Range: {max_range} km")
 
 # Auto-refresh using JavaScript (reloads page every refresh_sec seconds)
 if refresh_sec > 0:

@@ -100,12 +100,19 @@ def filter_aircraft(states, radar_lat, radar_lon, max_range_km):
             unique.append(ac)
     return unique
 
+def bearing(lat1, lon1, lat2, lon2):
+    """Bearing from point1 to point2 in degrees (0‑360)."""
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    y = sin(lon2 - lon1) * cos(lat2)
+    x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon2 - lon1)
+    brng = atan2(y, x)
+    return (brng * 180 / pi + 360) % 360
+
 def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
     """
     Create a polar (circular) radar plot with a rotating sweep line.
-    The sweep angle is based on current second and minute, so it advances each refresh.
+    The sweep angle is based on current second, so it advances each refresh.
     """
-    # Polar coordinates: r = distance (km), theta = bearing (degrees)
     r_vals = []
     theta_vals = []
     colors = []
@@ -116,12 +123,10 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
             brng = bearing(radar_lat, radar_lon, ac["lat"], ac["lon"])
             r_vals.append(dist)
             theta_vals.append(brng)
-            # color based on moving status
             moving = ac["velocity"] is not None and ac["velocity"] > 0.5
             colors.append("#2eff9e" if moving else "#ff5555")
             labels.append(ac["callsign"])
 
-    # Create polar figure
     fig = go.Figure()
     if r_vals:
         fig.add_trace(go.Scatterpolar(
@@ -134,7 +139,6 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
             name='Aircraft'
         ))
 
-    # Configure radial axis
     fig.update_layout(
         polar=dict(
             radialaxis=dict(
@@ -163,13 +167,8 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
         margin=dict(l=80, r=80, t=80, b=80)
     )
 
-    # Add a rotating sweep line (spiral? just a line from center to edge)
-    # Compute angle based on current time (seconds and minutes) to give a moving effect each refresh
-    now = datetime.now()
-    total_seconds = (now.minute * 60 + now.second) % 360  # cycle every 6 minutes (3600 seconds? Actually we want 360 deg per minute? Let's do per minute for smoother step)
-    # Make it advance every second: 360 deg per 60 seconds = 6 deg per second
-    angle = (now.second * 6) % 360  # rotates fully every 60 seconds
-    # Convert to radians for polar plot
+    # Rotating sweep line – angle based on current second (moves 6° per second)
+    angle = (datetime.now().second * 6) % 360
     sweep_line = go.Scatterpolar(
         r=[0, max_range_km],
         theta=[angle, angle],
@@ -181,14 +180,6 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
     fig.add_trace(sweep_line)
 
     return fig
-
-def bearing(lat1, lon1, lat2, lon2):
-    """Bearing from point1 to point2 in degrees (0‑360)."""
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-    y = sin(lon2 - lon1) * cos(lat2)
-    x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon2 - lon1)
-    brng = atan2(y, x)
-    return (brng * 180 / pi + 360) % 360
 
 def create_map(aircraft, radar_lat, radar_lon, max_range_km):
     if not aircraft:
@@ -292,7 +283,6 @@ with st.sidebar:
     st.divider()
     st.markdown("Powered by [OpenSky Network](https://opensky-network.org)")
 
-# Fetch data
 states = fetch_opensky()
 if states is None:
     st.error("❌ Failed to fetch data from OpenSky API. Please try again later.")
@@ -300,25 +290,20 @@ if states is None:
 
 aircraft = filter_aircraft(states, radar_lat, radar_lon, max_range)
 
-# Two columns: left for radar polar and table, right for map
 left_col, right_col = st.columns([0.5, 0.5])
 
 with left_col:
-    # Radar polar view with rotating sweep
     st.subheader("📡 RADAR SWEEP VIEW")
     polar_fig = create_radar_polar(aircraft, radar_lat, radar_lon, max_range)
     st.plotly_chart(polar_fig, use_container_width=True)
 
-    # Table of detected objects
     st.subheader(f"📋 Detected Objects ({len(aircraft)})")
     if aircraft:
         df_table = pd.DataFrame(aircraft)
-        # Prepare display dataframe
         display_df = df_table[["callsign", "lat", "lon", "altitude", "velocity", "heading"]].copy()
         display_df["altitude"] = display_df["altitude"].apply(lambda x: f"{x:.0f}m" if x is not None else "N/A")
         display_df["velocity"] = display_df["velocity"].apply(lambda x: f"{x:.1f}m/s" if x is not None else "?")
         display_df["heading"] = display_df["heading"].apply(lambda x: f"{x:.0f}°" if x is not None else "---")
-        # Status
         status = []
         for _, row in df_table.iterrows():
             if row["velocity"] is not None and row["velocity"] > 0.5:
@@ -336,11 +321,9 @@ with left_col:
         })
         st.dataframe(display_df, use_container_width=True, height=400)
 
-        # Selection for detailed report
         selected_callsign = st.selectbox("Select object for detailed report", df_table["callsign"].tolist())
         selected_ac = df_table[df_table["callsign"] == selected_callsign].iloc[0]
 
-        # Detailed report
         st.subheader("📋 Detailed Report")
         col1, col2 = st.columns(2)
         col1.metric("✈️ OBJECT", selected_ac["callsign"])
@@ -358,21 +341,21 @@ with left_col:
         col2.metric("🛬 ON GROUND", on_ground_text)
         st.caption("🔍 Real ADS-B data via OpenSky Network. This report corresponds to real-world transponder emissions.")
 
-        # Download report button
+        # Download button
         report_content = f"""
-        OBJECT REPORT
-        =============
-        Object: {selected_ac['callsign']}
-        ICAO24: {selected_ac['icao24']}
-        Latitude: {selected_ac['lat']:.5f}
-        Longitude: {selected_ac['lon']:.5f}
-        Altitude: {alt_text}
-        Speed: {speed_text}
-        Heading: {heading_text}
-        Vertical Rate: {vert_rate_text}
-        On Ground: {on_ground_text}
-        Time of report: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-        """
+OBJECT REPORT
+=============
+Object: {selected_ac['callsign']}
+ICAO24: {selected_ac['icao24']}
+Latitude: {selected_ac['lat']:.5f}
+Longitude: {selected_ac['lon']:.5f}
+Altitude: {alt_text}
+Speed: {speed_text}
+Heading: {heading_text}
+Vertical Rate: {vert_rate_text}
+On Ground: {on_ground_text}
+Time of report: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
         st.download_button(
             label="📥 Download Report (TXT)",
             data=report_content,

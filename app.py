@@ -281,12 +281,14 @@ if "last_aircraft" not in st.session_state:
 if "last_update" not in st.session_state:
     st.session_state.last_update = None
 
-# Get query parameters for geolocation
-query_params = st.experimental_get_query_params()
-if "lat" in query_params and "lon" in query_params:
+# Get query parameters for geolocation (new method)
+query_params = st.query_params
+geo_lat = query_params.get("lat")
+geo_lon = query_params.get("lon")
+if geo_lat is not None and geo_lon is not None:
     try:
-        geo_lat = float(query_params["lat"][0])
-        geo_lon = float(query_params["lon"][0])
+        geo_lat = float(geo_lat)
+        geo_lon = float(geo_lon)
     except:
         geo_lat = None
         geo_lon = None
@@ -296,7 +298,6 @@ else:
 
 with st.sidebar:
     st.header("📡 Radar Settings")
-    # Pre‑fill with geo coordinates if available, otherwise keep defaults
     if geo_lat is not None and geo_lon is not None:
         radar_lat = st.number_input("Radar Latitude", value=geo_lat, format="%.5f")
         radar_lon = st.number_input("Radar Longitude", value=geo_lon, format="%.5f")
@@ -308,7 +309,6 @@ with st.sidebar:
 
     # Geolocation button with custom JavaScript
     if st.button("📍 My Location", use_container_width=True):
-        # JavaScript to get location and set query parameters
         st.markdown(
             """
             <script>
@@ -317,7 +317,6 @@ with st.sidebar:
                     (position) => {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
-                        // Redirect to same page with query params
                         const url = new URL(window.location.href);
                         url.searchParams.set('lat', lat);
                         url.searchParams.set('lon', lon);
@@ -334,7 +333,6 @@ with st.sidebar:
             """,
             unsafe_allow_html=True
         )
-        # Stop further execution to allow the redirect to happen
         st.stop()
 
     if st.button("🔄 Refresh Now", use_container_width=True):

@@ -10,11 +10,9 @@ from datetime import datetime
 st.set_page_config(page_title="SURVEILLANCE RADAR - Military & Drone Detection", layout="wide", page_icon="🔴")
 
 # -------------------------------------------------------------------
-# Classification helpers
+# Classification helpers (unchanged)
 # -------------------------------------------------------------------
 
-# Known military ICAO hex ranges (prefixes)
-# These are common ranges; not exhaustive but a good starting point
 MILITARY_ICAO_PREFIXES = [
     "AE", "AD", "AF", "3C", "3E", "33", "34", "38", "39", "40", "43", "44", "45", "46", "48",
     "4B", "4C", "4D", "4E", "4F", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
@@ -26,7 +24,6 @@ MILITARY_ICAO_PREFIXES = [
     "A5", "A6", "A7", "A8", "A9", "AA", "AB", "AC",
 ]
 
-# Known drone ICAO prefixes (examples)
 DRONE_ICAO_PREFIXES = [
     "4CAA", "4CAB", "4CAC", "4CAD", "4CAE", "4CAF", "4CB0", "4CB1", "4CB2", "4CB3", "4CB4",
     "4CB5", "4CB6", "4CB7", "4CB8", "4CB9", "4CBA", "4CBB", "4CBC", "4CBD", "4CBE", "4CBF",
@@ -36,43 +33,34 @@ DRONE_ICAO_PREFIXES = [
 ]
 
 def classify_aircraft(icao24, callsign, velocity, altitude):
-    """Return dict with classification flags and type string."""
     is_military = False
     is_drone = False
-    type_str = "Unknown"
 
-    # Normalise for comparison
     icao_upper = icao24.upper()
     callsign_upper = callsign.upper() if callsign else ""
 
-    # Military by ICAO prefix
     for prefix in MILITARY_ICAO_PREFIXES:
         if icao_upper.startswith(prefix):
             is_military = True
             break
 
-    # Military by callsign keywords
     mil_keywords = ["AF", "NAVY", "ARMY", "AIR FORCE", "MIL", "RAAF", "RAF", "LUFT", "ARMEE"]
     if any(kw in callsign_upper for kw in mil_keywords):
         is_military = True
 
-    # Drone by ICAO prefix
     for prefix in DRONE_ICAO_PREFIXES:
         if icao_upper.startswith(prefix):
             is_drone = True
             break
 
-    # Drone by callsign keywords
     drone_keywords = ["DRONE", "UAV", "DRON", "QUAD", "HEXA", "OCTO"]
     if any(kw in callsign_upper for kw in drone_keywords):
         is_drone = True
 
-    # Heuristic: low altitude, low speed, not a helicopter (we can't know helicopter type, but can still flag)
     if not is_drone and not is_military:
         if altitude is not None and altitude < 500 and velocity is not None and velocity < 30:
             is_drone = True
 
-    # Determine type string
     if is_military:
         type_str = "🔫 Military"
     elif is_drone:
@@ -87,7 +75,7 @@ def classify_aircraft(icao24, callsign, velocity, altitude):
     }
 
 # -------------------------------------------------------------------
-# Existing helper functions (unchanged)
+# Helper functions
 # -------------------------------------------------------------------
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -110,8 +98,9 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=120, show_spinner=False)   # longer cache to avoid rate limits
 def fetch_opensky():
+    """Get raw states from OpenSky API with retry and longer timeout."""
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
     max_retries = 3
@@ -124,21 +113,22 @@ def fetch_opensky():
                 data = resp.json()
                 return data.get("states", [])
             elif resp.status_code == 429:
-                wait = 30
-                st.warning(f"OpenSky rate limit hit. Waiting {wait}s before retry (attempt {attempt+1}/{max_retries})")
+                wait = 60   # longer wait for rate limit
+                # Use a toast instead of a big warning
+                st.toast(f"OpenSky rate limit. Waiting {wait}s...", icon="⏳")
                 time.sleep(wait)
             else:
-                st.warning(f"OpenSky returned status {resp.status_code} (attempt {attempt+1})")
+                st.toast(f"OpenSky status {resp.status_code} (attempt {attempt+1})", icon="⚠️")
         except requests.exceptions.Timeout:
-            st.warning(f"OpenSky connection timeout (attempt {attempt+1}/{max_retries})")
+            st.toast(f"OpenSky timeout (attempt {attempt+1})", icon="⏱️")
         except Exception as e:
-            st.warning(f"OpenSky attempt {attempt+1} failed: {e}")
+            st.toast(f"OpenSky error: {e}", icon="❌")
 
         if attempt < max_retries - 1 and 'resp' in locals() and resp is not None and resp.status_code != 429:
             wait = 2 ** attempt
             time.sleep(wait)
 
-    st.warning("⚠️ OpenSky API is currently rate‑limiting or unavailable. Using cached data if available.")
+    st.toast("Using cached data (OpenSky unavailable)", icon="💾")
     return None
 
 def filter_aircraft(states, radar_lat, radar_lon, max_range_km):
@@ -201,7 +191,6 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
             brng = bearing(radar_lat, radar_lon, ac["lat"], ac["lon"])
             r_vals.append(dist)
             theta_vals.append(brng)
-            # Color by type: military red, drone orange, civilian green
             if ac["is_military"]:
                 colors.append("#ff4444")
             elif ac["is_drone"]:
@@ -284,7 +273,6 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         return fig
 
     df = pd.DataFrame(aircraft)
-    # Color by type
     df['color'] = df.apply(lambda row: '#ff4444' if row['is_military'] else ('#ffaa44' if row['is_drone'] else '#2eff9e'), axis=1)
     df['size'] = df['velocity'].apply(lambda v: 10 if (v and v > 0.5) else 8)
 
@@ -359,6 +347,8 @@ if "last_aircraft" not in st.session_state:
     st.session_state.last_aircraft = []
 if "last_update" not in st.session_state:
     st.session_state.last_update = None
+if "data_source" not in st.session_state:
+    st.session_state.data_source = "Live"
 
 # Get query parameters for geolocation
 query_params = st.query_params
@@ -383,7 +373,6 @@ with st.sidebar:
     else:
         radar_lat = st.number_input("Radar Latitude", value=40.7128, format="%.5f")
         radar_lon = st.number_input("Radar Longitude", value=-74.0060, format="%.5f")
-    # Increased max range to 2000 km
     max_range = st.number_input("Max Range (km)", min_value=30, max_value=2000, value=500, step=50)
     refresh_sec = st.number_input("Refresh Interval (sec)", min_value=3, max_value=60, value=60, step=1)
 
@@ -418,8 +407,12 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
+    # Show data source indicator
     st.divider()
-    st.markdown("Powered by [OpenSky Network](https://opensky-network.org)")
+    if st.session_state.data_source == "Live":
+        st.success("🟢 Live data")
+    else:
+        st.warning("🟡 Using cached data")
 
 states = fetch_opensky()
 
@@ -427,12 +420,13 @@ if states is not None:
     aircraft = filter_aircraft(states, radar_lat, radar_lon, max_range)
     st.session_state.last_aircraft = aircraft
     st.session_state.last_update = datetime.now()
+    st.session_state.data_source = "Live"
 elif st.session_state.last_aircraft:
     aircraft = st.session_state.last_aircraft
-    st.warning("⚠️ Using cached data from previous successful fetch. OpenSky API is currently rate‑limiting.")
+    st.session_state.data_source = "Cached"
 else:
     aircraft = []
-    st.warning("⚠️ No data available. Radar is searching but no objects detected yet. Try adjusting range or waiting for API availability.")
+    st.session_state.data_source = "None"
 
 left_col, right_col = st.columns([0.5, 0.5])
 
@@ -477,7 +471,6 @@ with left_col:
         col1.metric("📈 VERTICAL RATE", vert_rate_text)
         on_ground_text = "YES (on ground)" if selected_ac["on_ground"] else "AIRBORNE"
         col2.metric("🛬 ON GROUND", on_ground_text)
-        # Classification details
         st.markdown("**🛡️ Classification**")
         if selected_ac["is_military"]:
             st.success("🔫 **Military Aircraft** – flagged by ICAO range or callsign keywords.")

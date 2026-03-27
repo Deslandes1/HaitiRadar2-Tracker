@@ -66,7 +66,7 @@ def fetch_opensky():
             wait = 2 ** attempt  # 1, 2, 4 seconds
             time.sleep(wait)
     
-    st.error("❌ OpenSky API is currently rate‑limiting or unavailable. Using cached data if available.")
+    st.warning("⚠️ OpenSky API is currently rate‑limiting or unavailable. Using cached data if available.")
     return None
 
 def filter_aircraft(states, radar_lat, radar_lon, max_range_km):
@@ -302,23 +302,22 @@ with st.sidebar:
 
 states = fetch_opensky()
 
-if states is None:
-    # No new data: use cached data if available
-    if st.session_state.last_aircraft:
-        aircraft = st.session_state.last_aircraft
-        st.warning("⚠️ Using cached data from previous successful fetch. OpenSky API is currently rate‑limiting.")
-        # Show a banner but keep the dashboard
-    else:
-        aircraft = []
-        st.error("❌ Unable to fetch data from OpenSky API and no cached data available.")
-else:
+# Determine aircraft data to display
+if states is not None:
     # New data received
     aircraft = filter_aircraft(states, radar_lat, radar_lon, max_range)
-    # Store in session state
     st.session_state.last_aircraft = aircraft
     st.session_state.last_update = datetime.now()
+elif st.session_state.last_aircraft:
+    # No new data, but we have cached data
+    aircraft = st.session_state.last_aircraft
+    st.warning("⚠️ Using cached data from previous successful fetch. OpenSky API is currently rate‑limiting.")
+else:
+    # No new data and no cached data
+    aircraft = []
+    st.error("❌ Unable to fetch data from OpenSky API and no cached data available.")
 
-# Now always render the dashboard
+# Always render the dashboard
 left_col, right_col = st.columns([0.5, 0.5])
 
 with left_col:

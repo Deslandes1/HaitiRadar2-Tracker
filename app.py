@@ -98,35 +98,29 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
-@st.cache_data(ttl=120, show_spinner=False)
-def fetch_opensky():
+def _fetch_opensky_raw():
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
-    max_retries = 3
     timeout = 20
+    resp = requests.get(url, headers=headers, timeout=timeout)
+    if resp.status_code == 200:
+        data = resp.json()
+        return data.get("states", [])
+    else:
+        return None
 
+@st.cache_data(ttl=120, show_spinner=False)
+def fetch_opensky_cached():
+    max_retries = 3
     for attempt in range(max_retries):
         try:
-            resp = requests.get(url, headers=headers, timeout=timeout)
-            if resp.status_code == 200:
-                data = resp.json()
-                return data.get("states", [])
-            elif resp.status_code == 429:
-                wait = 60
-                st.toast(f"OpenSky rate limit. Waiting {wait}s...", icon="⏳")
-                time.sleep(wait)
-            else:
-                st.toast(f"OpenSky status {resp.status_code} (attempt {attempt+1})", icon="⚠️")
-        except requests.exceptions.Timeout:
-            st.toast(f"OpenSky timeout (attempt {attempt+1})", icon="⏱️")
-        except Exception as e:
-            st.toast(f"OpenSky error: {e}", icon="❌")
-
-        if attempt < max_retries - 1 and 'resp' in locals() and resp is not None and resp.status_code != 429:
-            wait = 2 ** attempt
-            time.sleep(wait)
-
-    st.toast("Using cached data (OpenSky unavailable)", icon="💾")
+            result = _fetch_opensky_raw()
+            if result is not None:
+                return result
+        except Exception:
+            pass
+        if attempt < max_retries - 1:
+            time.sleep(2 ** attempt)
     return None
 
 def filter_aircraft(states, radar_lat, radar_lon, max_range_km):
@@ -179,6 +173,7 @@ def bearing(lat1, lon1, lat2, lon2):
     return (brng * 180 / pi + 360) % 360
 
 def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
+    """Always returns a valid polar plot with sweep line."""
     r_vals = []
     theta_vals = []
     colors = []
@@ -371,7 +366,7 @@ else:
 if geo_lat is not None and geo_lon is not None:
     if (st.session_state.prev_lat != geo_lat or st.session_state.prev_lon != geo_lon):
         st.cache_data.clear()
-        st.session_state.last_aircraft = []   # discard old cached data
+        st.session_state.last_aircraft = []
         st.session_state.last_update = None
         st.toast("📍 Location updated – refreshing data...", icon="🔄")
     st.session_state.prev_lat = geo_lat
@@ -386,7 +381,11 @@ with st.sidebar:
         radar_lat = st.number_input("Radar Latitude", value=40.7128, format="%.5f")
         radar_lon = st.number_input("Radar Longitude", value=-74.0060, format="%.5f")
     max_range = st.number_input("Max Range (km)", min_value=30, max_value=2000, value=500, step=50)
-    refresh_sec = st.number_input("Refresh Interval (sec)", min_value=3, max_value=60, value=60, step=1)
+    auto_refresh = st.checkbox("Auto‑refresh page", value=False)
+    if auto_refresh:
+        refresh_sec = st.number_input("Refresh Interval (sec)", min_value=5, max_value=120, value=30, step=5)
+    else:
+        refresh_sec = 0
 
     if st.button("📍 My Location", use_container_width=True):
         st.markdown(
@@ -425,7 +424,9 @@ with st.sidebar:
     else:
         st.warning("🟡 Using cached data")
 
-states = fetch_opensky()
+# Fetch data with a spinner to show activity
+with st.spinner("Fetching live radar data..."):
+    states = fetch_opensky_cached()
 
 if states is not None:
     aircraft = filter_aircraft(states, radar_lat, radar_lon, max_range)

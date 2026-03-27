@@ -50,8 +50,7 @@ def fetch_opensky():
                 data = resp.json()
                 return data.get("states", [])
             elif resp.status_code == 429:
-                # Rate limit – wait longer before retrying
-                wait = 30  # seconds
+                wait = 30
                 st.warning(f"OpenSky rate limit hit. Waiting {wait}s before retry (attempt {attempt+1}/{max_retries})")
                 time.sleep(wait)
             else:
@@ -60,12 +59,11 @@ def fetch_opensky():
             st.warning(f"OpenSky connection timeout (attempt {attempt+1}/{max_retries})")
         except Exception as e:
             st.warning(f"OpenSky attempt {attempt+1} failed: {e}")
-        
-        # Only sleep if not already slept for rate limit
+
         if attempt < max_retries - 1 and 'resp' in locals() and resp is not None and resp.status_code != 429:
-            wait = 2 ** attempt  # 1, 2, 4 seconds
+            wait = 2 ** attempt
             time.sleep(wait)
-    
+
     st.warning("⚠️ OpenSky API is currently rate‑limiting or unavailable. Using cached data if available.")
     return None
 
@@ -117,8 +115,8 @@ def bearing(lat1, lon1, lat2, lon2):
 
 def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
     """
-    Create a polar (circular) radar plot with a rotating sweep line.
-    The sweep angle is based on current second, so it advances each refresh.
+    Polar radar plot with rotating sweep line (angle based on current second).
+    The sweep rotates continuously, independent of aircraft data.
     """
     r_vals = []
     theta_vals = []
@@ -146,6 +144,7 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
             name='Aircraft'
         ))
 
+    # Base layout
     fig.update_layout(
         polar=dict(
             radialaxis=dict(
@@ -174,7 +173,7 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
         margin=dict(l=80, r=80, t=80, b=80)
     )
 
-    # Rotating sweep line – angle based on current second (moves 6° per second)
+    # Rotating sweep line – angle changes every second (6° per second)
     angle = (datetime.now().second * 6) % 360
     sweep_line = go.Scatterpolar(
         r=[0, max_range_km],
@@ -221,7 +220,6 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         zoom=8,
         height=600
     )
-    # Update marker style using update_traces
     fig.update_traces(
         marker=dict(
             size=df['size'].tolist(),
@@ -240,7 +238,6 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         name='Radar Center'
     ))
 
-    # Range rings
     ring_distances = [0.25, 0.5, 0.75, 1.0]
     for frac in ring_distances:
         r_km = max_range_km * frac
@@ -280,7 +277,7 @@ st.title("🔴 GROUND RADAR (ADS‑B)")
 st.markdown("Live tracking | Real aircraft & drones with transponders | No simulation")
 st.markdown("🇭🇹 Owner: Gesner Deslandes")
 
-# Initialise session state for cached aircraft
+# Session state for cached data
 if "last_aircraft" not in st.session_state:
     st.session_state.last_aircraft = []
 if "last_update" not in st.session_state:
@@ -300,9 +297,10 @@ with st.sidebar:
     st.divider()
     st.markdown("Powered by [OpenSky Network](https://opensky-network.org)")
 
+# Fetch data (cached)
 states = fetch_opensky()
 
-# Determine aircraft data to display
+# Determine which aircraft to display
 if states is not None:
     # New data received
     aircraft = filter_aircraft(states, radar_lat, radar_lon, max_range)
@@ -315,7 +313,7 @@ elif st.session_state.last_aircraft:
 else:
     # No new data and no cached data
     aircraft = []
-    st.error("❌ Unable to fetch data from OpenSky API and no cached data available.")
+    st.warning("⚠️ No data available. Radar is searching but no objects detected yet. Try adjusting range or waiting for API availability.")
 
 # Always render the dashboard
 left_col, right_col = st.columns([0.5, 0.5])

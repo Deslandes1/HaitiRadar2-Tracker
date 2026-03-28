@@ -10,7 +10,7 @@ from datetime import datetime
 st.set_page_config(page_title="Surveillance Radar - Global ADS-B", layout="wide", page_icon="🔴")
 
 # -------------------------------------------------------------------
-# Classification helpers (same as before)
+# Classification helpers (unchanged)
 # -------------------------------------------------------------------
 
 MILITARY_ICAO_PREFIXES = [
@@ -98,20 +98,37 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
-# ---------- Data providers ----------
+# ---------- Improved OpenSky fetch with retries and longer timeout ----------
 def fetch_opensky():
-    """Free OpenSky Network (limited coverage)."""
+    """Free OpenSky Network with improved reliability."""
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
-    try:
-        resp = requests.get(url, headers=headers, timeout=20)
-        if resp.status_code == 200:
-            data = resp.json()
-            return data.get("states", [])
-        else:
-            return None
-    except:
-        return None
+    max_retries = 3
+    timeout = 30  # seconds
+
+    for attempt in range(max_retries):
+        try:
+            resp = requests.get(url, headers=headers, timeout=timeout)
+            if resp.status_code == 200:
+                data = resp.json()
+                return data.get("states", [])
+            elif resp.status_code == 429:
+                # Rate limit – wait longer
+                wait = 30
+                st.toast(f"OpenSky rate limit. Waiting {wait}s... (attempt {attempt+1}/{max_retries})", icon="⏳")
+                time.sleep(wait)
+            else:
+                st.toast(f"OpenSky returned {resp.status_code}. Retrying... (attempt {attempt+1}/{max_retries})", icon="⚠️")
+                time.sleep(2 ** attempt)  # exponential backoff
+        except requests.exceptions.Timeout:
+            st.toast(f"OpenSky timeout (attempt {attempt+1}/{max_retries})", icon="⏱️")
+            time.sleep(2 ** attempt)
+        except Exception as e:
+            st.toast(f"OpenSky error: {e}", icon="❌")
+            time.sleep(2 ** attempt)
+
+    st.toast("Using cached data (OpenSky unavailable)", icon="💾")
+    return None
 
 def fetch_flightradar24(api_key):
     """Flightradar24 API (global coverage) – requires a paid API key."""
@@ -146,7 +163,7 @@ def fetch_data(api_key=None):
         st.info("Flightradar24 not available – falling back to OpenSky (limited range).")
     return fetch_opensky()
 
-# ---------- Radar visualisation ----------
+# ---------- Radar visualisation (unchanged) ----------
 def bearing(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     y = sin(lon2 - lon1) * cos(lat2)
@@ -309,7 +326,7 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
     return fig
 
 # -------------------------------------------------------------------
-# Streamlit UI
+# Streamlit UI (unchanged)
 # -------------------------------------------------------------------
 
 st.title("🔴 GLOBAL SURVEILLANCE RADAR")

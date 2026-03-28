@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 
 # -------------------------------------------------------------------
-# Language dictionaries (corrected multi‑line strings)
+# Language dictionaries
 # -------------------------------------------------------------------
 TRANSLATIONS = {
     'en': {
@@ -299,19 +299,19 @@ st.set_page_config(page_title="Surveillance Radar - Global ADS-B", layout="wide"
 
 col_lang1, col_lang2, col_lang3, col_lang4 = st.columns([1,1,1,5])
 with col_lang1:
-    if st.button("🇺🇸 English"):
+    if st.button("🇺🇸 English", width='stretch'):
         st.session_state.language = 'en'
         st.rerun()
 with col_lang2:
-    if st.button("🇫🇷 Français"):
+    if st.button("🇫🇷 Français", width='stretch'):
         st.session_state.language = 'fr'
         st.rerun()
 with col_lang3:
-    if st.button("🇪🇸 Español"):
+    if st.button("🇪🇸 Español", width='stretch'):
         st.session_state.language = 'es'
         st.rerun()
 with col_lang4:
-    if st.button("🇭🇹 Kreyòl"):
+    if st.button("🇭🇹 Kreyòl", width='stretch'):
         st.session_state.language = 'ht'
         st.rerun()
 
@@ -319,7 +319,7 @@ if 'language' not in st.session_state:
     st.session_state.language = 'en'
 
 # -------------------------------------------------------------------
-# Enhanced drone detection (works at any altitude)
+# Classification arrays
 # -------------------------------------------------------------------
 MILITARY_ICAO_PREFIXES = [
     "AE", "AD", "AF", "3C", "3E", "33", "34", "38", "39", "40", "43", "44", "45", "46", "48",
@@ -382,7 +382,7 @@ def classify_aircraft(icao24, callsign, velocity, altitude, aircraft_type=None):
     }
 
 # -------------------------------------------------------------------
-# Helper functions (unchanged, but included for completeness)
+# Helper functions
 # -------------------------------------------------------------------
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -404,11 +404,12 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
+# ---------- Improved fetch with retries ----------
 def fetch_opensky():
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
-    max_retries = 2
-    timeout = 15
+    max_retries = 3
+    timeout = 20
 
     for attempt in range(max_retries):
         try:
@@ -417,7 +418,7 @@ def fetch_opensky():
                 data = resp.json()
                 return data.get("states", [])
             elif resp.status_code == 429:
-                wait = 20
+                wait = 30
                 st.toast(t('opensky_rate_limit', wait=wait, attempt=attempt+1, max_retries=max_retries), icon="⏳")
                 time.sleep(wait)
             else:
@@ -619,7 +620,7 @@ with st.sidebar:
     else:
         refresh_sec = 0
 
-    if st.button(t('my_location'), use_container_width=True):
+    if st.button(t('my_location'), width='stretch'):
         st.markdown(
             """
             <script>
@@ -646,7 +647,7 @@ with st.sidebar:
         )
         st.stop()
 
-    if st.button(t('refresh_now'), use_container_width=True):
+    if st.button(t('refresh_now'), width='stretch'):
         st.cache_data.clear()
         st.session_state.dismiss_error = False
         st.rerun()
@@ -725,11 +726,11 @@ else:
                 st.error(t('no_data_error'))
                 col1, col2 = st.columns(2)
                 with col1:
-                    if st.button(t('dismiss'), key="dismiss_error_btn"):
+                    if st.button(t('dismiss'), key="dismiss_error_btn", width='stretch'):
                         st.session_state.dismiss_error = True
                         st.rerun()
                 with col2:
-                    if st.button(t('retry'), key="retry_btn"):
+                    if st.button(t('retry'), key="retry_btn", width='stretch'):
                         st.cache_data.clear()
                         st.session_state.dismiss_error = False
                         st.rerun()
@@ -741,7 +742,7 @@ if 'aircraft' in locals():
     with left_col:
         st.subheader(t('radar_sweep'))
         polar_fig = create_radar_polar(aircraft, radar_lat, radar_lon, max_range)
-        st.plotly_chart(polar_fig, use_container_width=True)
+        st.plotly_chart(polar_fig, width='stretch')
 
         st.subheader(t('detected_objects', count=len(aircraft)))
         if aircraft:
@@ -761,7 +762,7 @@ if 'aircraft' in locals():
                 "type": "TYPE",
                 "distance": "DISTANCE"
             })
-            st.dataframe(display_df, use_container_width=True, height=400)
+            st.dataframe(display_df, width='stretch', height=400)
 
             selected_callsign = st.selectbox(t('select_object'), df_table["callsign"].tolist())
             selected_ac = df_table[df_table["callsign"] == selected_callsign].iloc[0]
@@ -807,7 +808,7 @@ Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 data=report_content,
                 file_name=f"{selected_ac['callsign']}_report.txt",
                 mime="text/plain",
-                use_container_width=True
+                width='stretch'
             )
         else:
             st.info(t('no_aircraft'))
@@ -815,7 +816,7 @@ Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     with right_col:
         st.subheader("🗺️ Radar Coverage Map")
         map_fig = create_map(aircraft, radar_lat, radar_lon, max_range)
-        st.plotly_chart(map_fig, use_container_width=True)
+        st.plotly_chart(map_fig, width='stretch')
         if st.session_state.last_update:
             st.caption(t('last_update', time=st.session_state.last_update.strftime('%H:%M:%S'), range=max_range, source=st.session_state.data_source))
         else:

@@ -10,7 +10,7 @@ from datetime import datetime
 st.set_page_config(page_title="Surveillance Radar - Global ADS-B", layout="wide", page_icon="🔴")
 
 # -------------------------------------------------------------------
-# Classification helpers (unchanged)
+# Classification helpers (same as before)
 # -------------------------------------------------------------------
 
 MILITARY_ICAO_PREFIXES = [
@@ -98,7 +98,7 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
-# ---------- Improved OpenSky fetch with retries and longer timeout ----------
+# ---------- Improved OpenSky fetch with retries ----------
 def fetch_opensky():
     """Free OpenSky Network with improved reliability."""
     url = "https://opensky-network.org/api/states/all"
@@ -163,7 +163,7 @@ def fetch_data(api_key=None):
         st.info("Flightradar24 not available – falling back to OpenSky (limited range).")
     return fetch_opensky()
 
-# ---------- Radar visualisation (unchanged) ----------
+# ---------- Radar visualisation ----------
 def bearing(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     y = sin(lon2 - lon1) * cos(lat2)
@@ -243,6 +243,7 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
 
     return fig
 
+# ---------- CORRECTED create_map ----------
 def create_map(aircraft, radar_lat, radar_lon, max_range_km):
     if not aircraft:
         fig = go.Figure()
@@ -264,7 +265,10 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         return fig
 
     df = pd.DataFrame(aircraft)
-    df['color'] = df.apply(lambda row: '#ff4444' if row.get('is_military', False) else ('#ffaa44' if row.get('is_drone', False) else '#2eff9e'), axis=1)
+    # Create categorical color mapping
+    df['color_group'] = df.apply(lambda row: 'military' if row.get('is_military', False) else ('drone' if row.get('is_drone', False) else 'civilian'), axis=1)
+    # Define colors for each group
+    color_map = {'military': '#ff4444', 'drone': '#ffaa44', 'civilian': '#2eff9e'}
     df['size'] = df['velocity'].apply(lambda v: 10 if (v and v > 0.5) else 8)
 
     fig = px.scatter_mapbox(
@@ -274,18 +278,15 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         hover_name='callsign',
         hover_data={'altitude': True, 'velocity': True, 'heading': True, 'type': True, 'distance': True},
         zoom=4,
-        height=600
-    )
-    fig.update_traces(
-        marker=dict(
-            size=df['size'].tolist(),
-            color=df['color'].tolist(),
-            symbol='circle',
-            line=dict(width=1, color='white')
-        ),
-        selector=dict(type='scattermapbox')
+        height=600,
+        color='color_group',          # use categorical column
+        color_discrete_map=color_map, # assign colors
+        size='size',                  # use size column
+        size_max=12,
+        title=''
     )
 
+    # Add radar center marker
     fig.add_trace(go.Scattermapbox(
         lat=[radar_lat],
         lon=[radar_lon],
@@ -294,6 +295,7 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         name='Radar Center'
     ))
 
+    # Range rings
     ring_distances = [0.25, 0.5, 0.75, 1.0]
     for frac in ring_distances:
         r_km = max_range_km * frac
@@ -326,7 +328,7 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
     return fig
 
 # -------------------------------------------------------------------
-# Streamlit UI (unchanged)
+# Streamlit UI
 # -------------------------------------------------------------------
 
 st.title("🔴 GLOBAL SURVEILLANCE RADAR")
@@ -368,7 +370,7 @@ if geo_lat is not None and geo_lon is not None:
         st.cache_data.clear()
         st.session_state.last_aircraft = []
         st.session_state.last_update = None
-        st.session_state.dismiss_error = False  # reset on location change
+        st.session_state.dismiss_error = False
         st.toast("📍 Location updated – refreshing data...", icon="🔄")
     st.session_state.prev_lat = geo_lat
     st.session_state.prev_lon = geo_lon
@@ -429,7 +431,7 @@ with st.sidebar:
 
     if st.button("🔄 Refresh Now", use_container_width=True):
         st.cache_data.clear()
-        st.session_state.dismiss_error = False  # reset error on manual refresh
+        st.session_state.dismiss_error = False
         st.rerun()
 
     st.divider()
@@ -502,17 +504,15 @@ if raw_data is not None:
     st.session_state.last_aircraft = aircraft
     st.session_state.last_update = datetime.now()
     st.session_state.data_source = "Flightradar24" if api_key else "OpenSky"
-    # Reset error flag if we got data
     st.session_state.dismiss_error = False
 else:
     # No fresh data
     if st.session_state.last_aircraft:
         aircraft = st.session_state.last_aircraft
         st.warning("⚠️ Using cached data (API unavailable)")
-        st.session_state.dismiss_error = False  # no error, we have cached
+        st.session_state.dismiss_error = False
     else:
         aircraft = []
-        # Show error only if not dismissed
         if not st.session_state.dismiss_error:
             error_placeholder = st.empty()
             with error_placeholder.container():

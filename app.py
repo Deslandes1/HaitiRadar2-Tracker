@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 
 # -------------------------------------------------------------------
-# Language dictionaries (fully corrected)
+# Language dictionaries (corrected multi‑line strings)
 # -------------------------------------------------------------------
 TRANSLATIONS = {
     'en': {
@@ -382,7 +382,7 @@ def classify_aircraft(icao24, callsign, velocity, altitude, aircraft_type=None):
     }
 
 # -------------------------------------------------------------------
-# Helper functions
+# Helper functions (unchanged, but included for completeness)
 # -------------------------------------------------------------------
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -404,7 +404,6 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
-# ---------- Improved fetch with shorter timeout and fewer retries ----------
 def fetch_opensky():
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}

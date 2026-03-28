@@ -104,7 +104,7 @@ def fetch_opensky():
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
     max_retries = 3
-    timeout = 30  # seconds
+    timeout = 30
 
     for attempt in range(max_retries):
         try:
@@ -113,13 +113,12 @@ def fetch_opensky():
                 data = resp.json()
                 return data.get("states", [])
             elif resp.status_code == 429:
-                # Rate limit – wait longer
                 wait = 30
                 st.toast(f"OpenSky rate limit. Waiting {wait}s... (attempt {attempt+1}/{max_retries})", icon="⏳")
                 time.sleep(wait)
             else:
                 st.toast(f"OpenSky returned {resp.status_code}. Retrying... (attempt {attempt+1}/{max_retries})", icon="⚠️")
-                time.sleep(2 ** attempt)  # exponential backoff
+                time.sleep(2 ** attempt)
         except requests.exceptions.Timeout:
             st.toast(f"OpenSky timeout (attempt {attempt+1}/{max_retries})", icon="⏱️")
             time.sleep(2 ** attempt)
@@ -267,7 +266,6 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
     df = pd.DataFrame(aircraft)
     # Create categorical color mapping
     df['color_group'] = df.apply(lambda row: 'military' if row.get('is_military', False) else ('drone' if row.get('is_drone', False) else 'civilian'), axis=1)
-    # Define colors for each group
     color_map = {'military': '#ff4444', 'drone': '#ffaa44', 'civilian': '#2eff9e'}
     df['size'] = df['velocity'].apply(lambda v: 10 if (v and v > 0.5) else 8)
 
@@ -279,9 +277,9 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         hover_data={'altitude': True, 'velocity': True, 'heading': True, 'type': True, 'distance': True},
         zoom=4,
         height=600,
-        color='color_group',          # use categorical column
-        color_discrete_map=color_map, # assign colors
-        size='size',                  # use size column
+        color='color_group',
+        color_discrete_map=color_map,
+        size='size',
         size_max=12,
         title=''
     )
@@ -295,7 +293,7 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
         name='Radar Center'
     ))
 
-    # Range rings
+    # Range rings (no dash – only color and width are valid)
     ring_distances = [0.25, 0.5, 0.75, 1.0]
     for frac in ring_distances:
         r_km = max_range_km * frac
@@ -311,7 +309,7 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
             lat=circle_lats,
             lon=circle_lons,
             mode='lines',
-            line=dict(width=1, color='#28e6a8', dash='dash'),
+            line=dict(width=1, color='#28e6a8'),   # dash removed – not supported
             showlegend=False,
             hoverinfo='none'
         ))

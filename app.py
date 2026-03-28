@@ -7,7 +7,325 @@ from math import radians, sin, cos, sqrt, atan2, pi, asin, degrees
 import time
 from datetime import datetime
 
+# -------------------------------------------------------------------
+# Language dictionaries
+# -------------------------------------------------------------------
+TRANSLATIONS = {
+    'en': {
+        'app_title': '🔴 GLOBAL SURVEILLANCE RADAR',
+        'subtitle': 'Military & Drone Detection | Real‑time airspace monitoring',
+        'owner': '🇭🇹 Owner: Gesner Deslandes – Licensed Software',
+        'business': '🏢 **GlobalInternet.py**',
+        'radar_settings': '📡 Radar Settings',
+        'radar_latitude': 'Radar Latitude',
+        'radar_longitude': 'Radar Longitude',
+        'max_range': 'Max Range (km)',
+        'data_source': '🔑 Data Source',
+        'global_coverage_info': 'For global coverage (oceans & remote areas), enter your Flightradar24 API key.',
+        'api_key_label': 'Flightradar24 API Key',
+        'api_key_placeholder': 'Enter your API key (optional)',
+        'global_active': '🌍 **Global coverage active** – you will see aircraft worldwide.',
+        'opensky_info': '📡 Using OpenSky Network (regional coverage, free).',
+        'auto_refresh': 'Auto‑refresh page',
+        'refresh_interval': 'Refresh Interval (sec)',
+        'my_location': '📍 My Location',
+        'refresh_now': '🔄 Refresh Now',
+        'license_title': '📜 **Software License**',
+        'license_text': """
+**Proprietary Commercial Software**  
+Copyright © 2025 Gesner Deslandes. All rights reserved.
+
+This software is **licensed**, not sold.  
+You may use it only after purchasing a valid license from the author.
+
+**Unauthorized copying, distribution, or resale is strictly prohibited.**
+
+For licensing, support, or payments:
+""",
+        'contact_phone': '📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`',
+        'contact_email': '📧 **Email**: `deslandes78@gmail.com`',
+        'terms': 'By using this software you agree to the terms above.',
+        'radar_sweep': '📡 RADAR SWEEP VIEW',
+        'detected_objects': '📋 Detected Objects ({count})',
+        'select_object': 'Select object for detailed report',
+        'detailed_report': '📋 Detailed Report',
+        'object': '✈️ OBJECT',
+        'icao': '🆔 ICAO24',
+        'lat_lon': '📍 LAT/LON',
+        'altitude': '📏 ALTITUDE',
+        'speed': '💨 SPEED',
+        'heading': '🧭 HEADING',
+        'distance': '📡 DISTANCE',
+        'type': '📋 TYPE',
+        'classification': '🛡️ Classification',
+        'military_msg': '🔫 **Military Aircraft** – flagged by ICAO range or callsign keywords.',
+        'drone_msg': '🚁 **Drone / UAV** – flagged by ICAO range, callsign keywords, or low‑altitude/speed behaviour.',
+        'civilian_msg': '✈️ **Civilian Aircraft** – no military or drone indicators.',
+        'data_source_caption': 'Data source: ',
+        'download_report': '📥 Download Report (TXT)',
+        'no_aircraft': 'No aircraft detected within current range. Try increasing the range or check your location.',
+        'last_update': '📡 Last update: {time} | Range: {range} km | Source: {source}',
+        'range_only': '📡 Range: {range} km | Source: {source}',
+        'fetching': 'Fetching aircraft data...',
+        'using_cached': '⚠️ Using cached data (API unavailable)',
+        'no_data_error': '❌ No data available. Check your internet connection or API key.',
+        'dismiss': 'Dismiss',
+        'retry': 'Retry',
+        'error_dismissed': 'Error dismissed. Click \'Refresh Now\' to retry.',
+        'opensky_rate_limit': 'OpenSky rate limit. Waiting {wait}s... (attempt {attempt}/{max_retries})',
+        'opensky_retry': 'OpenSky returned {status}. Retrying... (attempt {attempt}/{max_retries})',
+        'opensky_timeout': 'OpenSky timeout (attempt {attempt}/{max_retries})',
+        'opensky_error': 'OpenSky error: {error}',
+        'using_cached_toast': 'Using cached data (OpenSky unavailable)',
+        'location_updated': '📍 Location updated – refreshing data...',
+    },
+    'fr': {
+        'app_title': '🔴 RADAR DE SURVEILLANCE GLOBAL',
+        'subtitle': 'Détection militaire & drones | Surveillance aérienne en temps réel',
+        'owner': '🇭🇹 Propriétaire : Gesner Deslandes – Logiciel sous licence',
+        'business': '🏢 **GlobalInternet.py**',
+        'radar_settings': '📡 Paramètres Radar',
+        'radar_latitude': 'Latitude du radar',
+        'radar_longitude': 'Longitude du radar',
+        'max_range': 'Portée max (km)',
+        'data_source': '🔑 Source de données',
+        'global_coverage_info': 'Pour une couverture mondiale (océans & zones reculées), entrez votre clé API Flightradar24.',
+        'api_key_label': 'Clé API Flightradar24',
+        'api_key_placeholder': 'Entrez votre clé API (optionnel)',
+        'global_active': '🌍 **Couverture mondiale active** – vous verrez les aéronefs du monde entier.',
+        'opensky_info': '📡 Utilisation du réseau OpenSky (couverture régionale, gratuit).',
+        'auto_refresh': 'Actualisation automatique',
+        'refresh_interval': 'Intervalle d\'actualisation (s)',
+        'my_location': '📍 Ma position',
+        'refresh_now': '🔄 Actualiser',
+        'license_title': '📜 **Licence du logiciel**',
+        'license_text': """
+**Logiciel commercial propriétaire**  
+Copyright © 2025 Gesner Deslandes. Tous droits réservés.
+
+Ce logiciel est **sous licence**, non vendu.  
+Vous ne pouvez l'utiliser qu'après avoir acheté une licence valide auprès de l'auteur.
+
+**La copie, distribution ou revente non autorisée est strictement interdite.**
+
+Pour les licences, support ou paiements :
+""",
+        'contact_phone': '📞 **Prisme Transfer** (Digicel Moncash) : `(509) 4738-5663`',
+        'contact_email': '📧 **Email** : `deslandes78@gmail.com`',
+        'terms': 'En utilisant ce logiciel, vous acceptez les conditions ci-dessus.',
+        'radar_sweep': '📡 VUE RADAR (BALAYAGE)',
+        'detected_objects': '📋 Objets détectés ({count})',
+        'select_object': 'Sélectionnez un objet pour un rapport détaillé',
+        'detailed_report': '📋 Rapport détaillé',
+        'object': '✈️ OBJET',
+        'icao': '🆔 ICAO24',
+        'lat_lon': '📍 LAT/LON',
+        'altitude': '📏 ALTITUDE',
+        'speed': '💨 VITESSE',
+        'heading': '🧭 CAP',
+        'distance': '📡 DISTANCE',
+        'type': '📋 TYPE',
+        'classification': '🛡️ Classification',
+        'military_msg': '🔫 **Aéronef militaire** – détecté par plage ICAO ou indicatif.',
+        'drone_msg': '🚁 **Drone / UAV** – détecté par plage ICAO, indicatif, ou comportement (basse altitude/vitesse).',
+        'civilian_msg': '✈️ **Aéronef civil** – aucun indicateur militaire ou drone.',
+        'data_source_caption': 'Source de données : ',
+        'download_report': '📥 Télécharger le rapport (TXT)',
+        'no_aircraft': 'Aucun aéronef détecté dans la portée actuelle. Essayez d\'augmenter la portée ou vérifiez votre emplacement.',
+        'last_update': '📡 Dernière mise à jour : {time} | Portée : {range} km | Source : {source}',
+        'range_only': '📡 Portée : {range} km | Source : {source}',
+        'fetching': 'Récupération des données aéronefs...',
+        'using_cached': '⚠️ Utilisation des données mises en cache (API indisponible)',
+        'no_data_error': '❌ Aucune donnée disponible. Vérifiez votre connexion internet ou votre clé API.',
+        'dismiss': 'Ignorer',
+        'retry': 'Réessayer',
+        'error_dismissed': 'Erreur ignorée. Cliquez sur "Actualiser" pour réessayer.',
+        'opensky_rate_limit': 'Limite de débit OpenSky. Attente de {wait}s... (tentative {attempt}/{max_retries})',
+        'opensky_retry': 'OpenSky a retourné {status}. Nouvel essai... (tentative {attempt}/{max_retries})',
+        'opensky_timeout': 'Délai d\'attente OpenSky dépassé (tentative {attempt}/{max_retries})',
+        'opensky_error': 'Erreur OpenSky : {error}',
+        'using_cached_toast': 'Utilisation des données mises en cache (OpenSky indisponible)',
+        'location_updated': '📍 Position mise à jour – actualisation des données...',
+    },
+    'es': {
+        'app_title': '🔴 RADAR DE VIGILANCIA GLOBAL',
+        'subtitle': 'Detección militar y drones | Monitoreo aéreo en tiempo real',
+        'owner': '🇭🇹 Propietario: Gesner Deslandes – Software bajo licencia',
+        'business': '🏢 **GlobalInternet.py**',
+        'radar_settings': '📡 Configuración del Radar',
+        'radar_latitude': 'Latitud del radar',
+        'radar_longitude': 'Longitud del radar',
+        'max_range': 'Alcance máximo (km)',
+        'data_source': '🔑 Fuente de datos',
+        'global_coverage_info': 'Para cobertura global (océanos y zonas remotas), ingrese su clave API de Flightradar24.',
+        'api_key_label': 'Clave API de Flightradar24',
+        'api_key_placeholder': 'Ingrese su clave API (opcional)',
+        'global_active': '🌍 **Cobertura global activa** – verá aeronaves en todo el mundo.',
+        'opensky_info': '📡 Usando OpenSky Network (cobertura regional, gratis).',
+        'auto_refresh': 'Actualización automática',
+        'refresh_interval': 'Intervalo de actualización (seg)',
+        'my_location': '📍 Mi ubicación',
+        'refresh_now': '🔄 Actualizar ahora',
+        'license_title': '📜 **Licencia de software**',
+        'license_text': """
+**Software comercial propietario**  
+Copyright © 2025 Gesner Deslandes. Todos los derechos reservados.
+
+Este software está **bajo licencia**, no se vende.  
+Solo puede usarlo después de comprar una licencia válida al autor.
+
+**La copia, distribución o reventa no autorizada está estrictamente prohibida.**
+
+Para licencias, soporte o pagos:
+""",
+        'contact_phone': '📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`',
+        'contact_email': '📧 **Correo electrónico**: `deslandes78@gmail.com`',
+        'terms': 'Al usar este software acepta los términos anteriores.',
+        'radar_sweep': '📡 VISTA RADAR (BARRIDO)',
+        'detected_objects': '📋 Objetos detectados ({count})',
+        'select_object': 'Seleccione un objeto para informe detallado',
+        'detailed_report': '📋 Informe detallado',
+        'object': '✈️ OBJETO',
+        'icao': '🆔 ICAO24',
+        'lat_lon': '📍 LAT/LON',
+        'altitude': '📏 ALTITUD',
+        'speed': '💨 VELOCIDAD',
+        'heading': '🧭 RUMBO',
+        'distance': '📡 DISTANCIA',
+        'type': '📋 TIPO',
+        'classification': '🛡️ Clasificación',
+        'military_msg': '🔫 **Aeronave militar** – identificada por rango ICAO o indicativo.',
+        'drone_msg': '🚁 **Drone / UAV** – identificado por rango ICAO, indicativo o comportamiento (baja altitud/velocidad).',
+        'civilian_msg': '✈️ **Aeronave civil** – sin indicadores militares o de dron.',
+        'data_source_caption': 'Fuente de datos: ',
+        'download_report': '📥 Descargar informe (TXT)',
+        'no_aircraft': 'No se detectaron aeronaves en el alcance actual. Intente aumentar el alcance o verifique su ubicación.',
+        'last_update': '📡 Última actualización: {time} | Alcance: {range} km | Fuente: {source}',
+        'range_only': '📡 Alcance: {range} km | Fuente: {source}',
+        'fetching': 'Obteniendo datos de aeronaves...',
+        'using_cached': '⚠️ Usando datos en caché (API no disponible)',
+        'no_data_error': '❌ No hay datos disponibles. Verifique su conexión a Internet o su clave API.',
+        'dismiss': 'Descartar',
+        'retry': 'Reintentar',
+        'error_dismissed': 'Error descartado. Haga clic en "Actualizar ahora" para reintentar.',
+        'opensky_rate_limit': 'Límite de tasa de OpenSky. Esperando {wait}s... (intento {attempt}/{max_retries})',
+        'opensky_retry': 'OpenSky devolvió {status}. Reintentando... (intento {attempt}/{max_retries})',
+        'opensky_timeout': 'Tiempo de espera agotado de OpenSky (intento {attempt}/{max_retries})',
+        'opensky_error': 'Error de OpenSky: {error}',
+        'using_cached_toast': 'Usando datos en caché (OpenSky no disponible)',
+        'location_updated': '📍 Ubicación actualizada – refrescando datos...',
+    },
+    'ht': {
+        'app_title': '🔴 RADAR SIVEYANS GLOBAL',
+        'subtitle': 'Deteksyon militè & dron | Siveyans espas aeryen an tan reyèl',
+        'owner': '🇭🇹 Pwopriyetè: Gesner Deslandes – Lojisyèl ki gen lisans',
+        'business': '🏢 **GlobalInternet.py**',
+        'radar_settings': '📡 Anviwònman Radar',
+        'radar_latitude': 'Latitid radar',
+        'radar_longitude': 'Longitid radar',
+        'max_range': 'Ran maksimòm (km)',
+        'data_source': '🔑 Sous done',
+        'global_coverage_info': 'Pou kouvèti mondyal (oseyan & zòn lwen), antre kle API Flightradar24 ou a.',
+        'api_key_label': 'Kle API Flightradar24',
+        'api_key_placeholder': 'Antre kle API ou a (opsyonèl)',
+        'global_active': '🌍 **Kouvèti mondyal aktive** – w ap wè avyon atravè lemonn.',
+        'opensky_info': '📡 Sèvi ak OpenSky Network (kouvèti rejyonal, gratis).',
+        'auto_refresh': 'Aktualizasyon otomatik',
+        'refresh_interval': 'Entèval aktualizasyon (s)',
+        'my_location': '📍 Kote mwen ye',
+        'refresh_now': '🔄 Aktualize kounye a',
+        'license_title': '📜 **Lisans lojisyèl**',
+        'license_text': """
+**Lojisyèl komèsyal pwopriyetè**  
+Copyright © 2025 Gesner Deslandes. Tout dwa rezève.
+
+Lojisyèl sa a **gen lisans**, li pa vann.  
+Ou ka sèvi ak li sèlman apre w fin achte yon lisans valab nan men otè a.
+
+**Kopi, distribisyon oswa revent san otorizasyon entèdi.**
+
+Pou lisans, sipò, oswa peman:
+""",
+        'contact_phone': '📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`',
+        'contact_email': '📧 **Imèl**: `deslandes78@gmail.com`',
+        'terms': 'Lè w sèvi ak lojisyèl sa a, ou dakò ak kondisyon ki anwo yo.',
+        'radar_sweep': '📡 VIZUALIZASYON RADAR (BALE)',
+        'detected_objects': '📋 Objè detekte ({count})',
+        'select_object': 'Chwazi yon objè pou rapò detaye',
+        'detailed_report': '📋 Rapò detaye',
+        'object': '✈️ OBJÈ',
+        'icao': '🆔 ICAO24',
+        'lat_lon': '📍 LAT/LON',
+        'altitude': '📏 ALTITID',
+        'speed': '💨 VITÈS',
+        'heading': '🧭 KAP',
+        'distance': '📡 DISTANS',
+        'type': '📋 TIP',
+        'classification': '🛡️ Klasifikasyon',
+        'military_msg': '🔫 **Avyon militè** – detekte pa seri ICAO oswa mo kle yo rele.',
+        'drone_msg': '🚁 **Dron / UAV** – detekte pa seri ICAO, mo kle yo rele, oswa konpòtman (altitid ba/vitès ba).',
+        'civilian_msg': '✈️ **Avyon sivil** – pa gen endikatè militè oswa dron.',
+        'data_source_caption': 'Sous done: ',
+        'download_report': '📥 Telechaje rapò (TXT)',
+        'no_aircraft': 'Pa gen okenn avyon detekte nan ran aktyèl la. Eseye ogmante ran oswa tcheke kote ou ye.',
+        'last_update': '📡 Dènye mizajou: {time} | Ran: {range} km | Sous: {source}',
+        'range_only': '📡 Ran: {range} km | Sous: {source}',
+        'fetching': 'Ap chache done avyon...',
+        'using_cached': '⚠️ Sèvi ak done ki nan kachèt (API pa disponib)',
+        'no_data_error': '❌ Pa gen done disponib. Tcheke koneksyon entènèt ou oswa kle API ou.',
+        'dismiss': 'Fèmen',
+        'retry': 'Eseye ankò',
+        'error_dismissed': 'Erè fèmen. Klike sou "Aktualize kounye a" pou eseye ankò.',
+        'opensky_rate_limit': 'Limit vitès OpenSky. Ap tann {wait}s... (esey {attempt}/{max_retries})',
+        'opensky_retry': 'OpenSky retounen {status}. Ap eseye ankò... (esey {attempt}/{max_retries})',
+        'opensky_timeout': 'Tan ekspirasyon OpenSky (esey {attempt}/{max_retries})',
+        'opensky_error': 'Erè OpenSky: {error}',
+        'using_cached_toast': 'Sèvi ak done kachèt (OpenSky pa disponib)',
+        'location_updated': '📍 Kote mete ajou – ap rafrechi done...',
+    },
+}
+
+# -------------------------------------------------------------------
+# Helper to get translated text
+# -------------------------------------------------------------------
+def t(key, **kwargs):
+    lang = st.session_state.get('language', 'en')
+    text = TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+    if kwargs:
+        return text.format(**kwargs)
+    return text
+
+# -------------------------------------------------------------------
+# Set page config
+# -------------------------------------------------------------------
 st.set_page_config(page_title="Surveillance Radar - Global ADS-B", layout="wide", page_icon="🔴")
+
+# -------------------------------------------------------------------
+# Language selector (top of page)
+# -------------------------------------------------------------------
+col_lang1, col_lang2, col_lang3, col_lang4 = st.columns([1,1,1,5])
+with col_lang1:
+    if st.button("🇺🇸 English"):
+        st.session_state.language = 'en'
+        st.rerun()
+with col_lang2:
+    if st.button("🇫🇷 Français"):
+        st.session_state.language = 'fr'
+        st.rerun()
+with col_lang3:
+    if st.button("🇪🇸 Español"):
+        st.session_state.language = 'es'
+        st.rerun()
+with col_lang4:
+    if st.button("🇭🇹 Kreyòl"):
+        st.session_state.language = 'ht'
+        st.rerun()
+
+# -------------------------------------------------------------------
+# Set default language if not set
+# -------------------------------------------------------------------
+if 'language' not in st.session_state:
+    st.session_state.language = 'en'
 
 # -------------------------------------------------------------------
 # Classification helpers (same as before)
@@ -114,19 +432,19 @@ def fetch_opensky():
                 return data.get("states", [])
             elif resp.status_code == 429:
                 wait = 30
-                st.toast(f"OpenSky rate limit. Waiting {wait}s... (attempt {attempt+1}/{max_retries})", icon="⏳")
+                st.toast(t('opensky_rate_limit', wait=wait, attempt=attempt+1, max_retries=max_retries), icon="⏳")
                 time.sleep(wait)
             else:
-                st.toast(f"OpenSky returned {resp.status_code}. Retrying... (attempt {attempt+1}/{max_retries})", icon="⚠️")
+                st.toast(t('opensky_retry', status=resp.status_code, attempt=attempt+1, max_retries=max_retries), icon="⚠️")
                 time.sleep(2 ** attempt)
         except requests.exceptions.Timeout:
-            st.toast(f"OpenSky timeout (attempt {attempt+1}/{max_retries})", icon="⏱️")
+            st.toast(t('opensky_timeout', attempt=attempt+1, max_retries=max_retries), icon="⏱️")
             time.sleep(2 ** attempt)
         except Exception as e:
-            st.toast(f"OpenSky error: {e}", icon="❌")
+            st.toast(t('opensky_error', error=str(e)), icon="❌")
             time.sleep(2 ** attempt)
 
-    st.toast("Using cached data (OpenSky unavailable)", icon="💾")
+    st.toast(t('using_cached_toast'), icon="💾")
     return None
 
 def fetch_flightradar24(api_key):
@@ -309,7 +627,7 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
             lat=circle_lats,
             lon=circle_lons,
             mode='lines',
-            line=dict(width=1, color='#28e6a8'),   # dash removed – not supported
+            line=dict(width=1, color='#28e6a8'),
             showlegend=False,
             hoverinfo='none'
         ))
@@ -329,10 +647,10 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
 # Streamlit UI
 # -------------------------------------------------------------------
 
-st.title("🔴 GLOBAL SURVEILLANCE RADAR")
-st.markdown("**Military & Drone Detection** | Real‑time airspace monitoring")
-st.markdown("🇭🇹 Owner: Gesner Deslandes – Licensed Software")
-st.markdown("🏢 **GlobalInternet.py**")
+st.title(t('app_title'))
+st.markdown(t('subtitle'))
+st.markdown(t('owner'))
+st.markdown(t('business'))
 
 # Session state for cached data and error dismissal
 if "last_aircraft" not in st.session_state:
@@ -369,38 +687,38 @@ if geo_lat is not None and geo_lon is not None:
         st.session_state.last_aircraft = []
         st.session_state.last_update = None
         st.session_state.dismiss_error = False
-        st.toast("📍 Location updated – refreshing data...", icon="🔄")
+        st.toast(t('location_updated'), icon="🔄")
     st.session_state.prev_lat = geo_lat
     st.session_state.prev_lon = geo_lon
 
 with st.sidebar:
-    st.header("📡 Radar Settings")
+    st.header(t('radar_settings'))
     if geo_lat is not None and geo_lon is not None:
-        radar_lat = st.number_input("Radar Latitude", value=geo_lat, format="%.5f")
-        radar_lon = st.number_input("Radar Longitude", value=geo_lon, format="%.5f")
+        radar_lat = st.number_input(t('radar_latitude'), value=geo_lat, format="%.5f")
+        radar_lon = st.number_input(t('radar_longitude'), value=geo_lon, format="%.5f")
     else:
-        radar_lat = st.number_input("Radar Latitude", value=40.7128, format="%.5f")
-        radar_lon = st.number_input("Radar Longitude", value=-74.0060, format="%.5f")
-    max_range = st.number_input("Max Range (km)", min_value=30, max_value=2000, value=500, step=50)
+        radar_lat = st.number_input(t('radar_latitude'), value=40.7128, format="%.5f")
+        radar_lon = st.number_input(t('radar_longitude'), value=-74.0060, format="%.5f")
+    max_range = st.number_input(t('max_range'), min_value=30, max_value=2000, value=500, step=50)
 
     # Data source configuration
     st.divider()
-    st.header("🔑 Data Source")
-    st.markdown("For global coverage (oceans & remote areas), enter your Flightradar24 API key.")
-    api_key = st.text_input("Flightradar24 API Key", type="password", placeholder="Enter your API key (optional)")
+    st.header(t('data_source'))
+    st.markdown(t('global_coverage_info'))
+    api_key = st.text_input(t('api_key_label'), type="password", placeholder=t('api_key_placeholder'))
     if api_key:
-        st.info("🌍 **Global coverage active** – you will see aircraft worldwide.")
+        st.info(t('global_active'))
     else:
-        st.info("📡 Using OpenSky Network (regional coverage, free).")
+        st.info(t('opensky_info'))
 
     # Auto-refresh (optional)
-    auto_refresh = st.checkbox("Auto‑refresh page", value=False)
+    auto_refresh = st.checkbox(t('auto_refresh'), value=False)
     if auto_refresh:
-        refresh_sec = st.number_input("Refresh Interval (sec)", min_value=10, max_value=300, value=60, step=10)
+        refresh_sec = st.number_input(t('refresh_interval'), min_value=10, max_value=300, value=60, step=10)
     else:
         refresh_sec = 0
 
-    if st.button("📍 My Location", use_container_width=True):
+    if st.button(t('my_location'), use_container_width=True):
         st.markdown(
             """
             <script>
@@ -427,30 +745,20 @@ with st.sidebar:
         )
         st.stop()
 
-    if st.button("🔄 Refresh Now", use_container_width=True):
+    if st.button(t('refresh_now'), use_container_width=True):
         st.cache_data.clear()
         st.session_state.dismiss_error = False
         st.rerun()
 
     st.divider()
-    st.markdown("## 📜 **Software License**")
-    st.markdown("""
-    **Proprietary Commercial Software**  
-    Copyright © 2025 Gesner Deslandes. All rights reserved.
-
-    This software is **licensed**, not sold.  
-    You may use it only after purchasing a valid license from the author.
-
-    **Unauthorized copying, distribution, or resale is strictly prohibited.**
-
-    For licensing, support, or payments:
-    """)
-    st.markdown("📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`")
-    st.markdown("📧 **Email**: `deslandes78@gmail.com`")
-    st.caption("By using this software you agree to the terms above.")
+    st.markdown(t('license_title'))
+    st.markdown(t('license_text'))
+    st.markdown(t('contact_phone'))
+    st.markdown(t('contact_email'))
+    st.caption(t('terms'))
 
 # Fetch data
-with st.spinner("Fetching aircraft data..."):
+with st.spinner(t('fetching')):
     raw_data = fetch_data(api_key if api_key else None)
 
 if raw_data is not None:
@@ -507,26 +815,26 @@ else:
     # No fresh data
     if st.session_state.last_aircraft:
         aircraft = st.session_state.last_aircraft
-        st.warning("⚠️ Using cached data (API unavailable)")
+        st.warning(t('using_cached'))
         st.session_state.dismiss_error = False
     else:
         aircraft = []
         if not st.session_state.dismiss_error:
             error_placeholder = st.empty()
             with error_placeholder.container():
-                st.error("❌ No data available. Check your internet connection or API key.")
+                st.error(t('no_data_error'))
                 col1, col2 = st.columns(2)
                 with col1:
-                    if st.button("Dismiss", key="dismiss_error_btn"):
+                    if st.button(t('dismiss'), key="dismiss_error_btn"):
                         st.session_state.dismiss_error = True
                         st.rerun()
                 with col2:
-                    if st.button("Retry", key="retry_btn"):
+                    if st.button(t('retry'), key="retry_btn"):
                         st.cache_data.clear()
                         st.session_state.dismiss_error = False
                         st.rerun()
         else:
-            st.info("Error dismissed. Click 'Refresh Now' to retry.")
+            st.info(t('error_dismissed'))
 
 # -------------------------------------------------------------------
 # Display radar and table (only if aircraft is defined)
@@ -536,11 +844,11 @@ if 'aircraft' in locals():
     left_col, right_col = st.columns([0.5, 0.5])
 
     with left_col:
-        st.subheader("📡 RADAR SWEEP VIEW")
+        st.subheader(t('radar_sweep'))
         polar_fig = create_radar_polar(aircraft, radar_lat, radar_lon, max_range)
         st.plotly_chart(polar_fig, use_container_width=True)
 
-        st.subheader(f"📋 Detected Objects ({len(aircraft)})")
+        st.subheader(t('detected_objects', count=len(aircraft)))
         if aircraft:
             df_table = pd.DataFrame(aircraft)
             display_df = df_table[["callsign", "lat", "lon", "altitude", "velocity", "heading", "type", "distance"]].copy()
@@ -560,65 +868,64 @@ if 'aircraft' in locals():
             })
             st.dataframe(display_df, use_container_width=True, height=400)
 
-            selected_callsign = st.selectbox("Select object for detailed report", df_table["callsign"].tolist())
+            selected_callsign = st.selectbox(t('select_object'), df_table["callsign"].tolist())
             selected_ac = df_table[df_table["callsign"] == selected_callsign].iloc[0]
 
-            st.subheader("📋 Detailed Report")
+            st.subheader(t('detailed_report'))
             col1, col2 = st.columns(2)
-            col1.metric("✈️ OBJECT", selected_ac["callsign"])
-            col2.metric("🆔 ICAO24", selected_ac["icao24"] if selected_ac["icao24"] else "N/A")
-            col1.metric("📍 LAT/LON", f"{selected_ac['lat']:.5f}, {selected_ac['lon']:.5f}")
+            col1.metric(t('object'), selected_ac["callsign"])
+            col2.metric(t('icao'), selected_ac["icao24"] if selected_ac["icao24"] else "N/A")
+            col1.metric(t('lat_lon'), f"{selected_ac['lat']:.5f}, {selected_ac['lon']:.5f}")
             alt_text = f"{selected_ac['altitude']:.0f} m ({selected_ac['altitude']*3.28084:.0f} ft)" if selected_ac["altitude"] else "unknown"
-            col2.metric("📏 ALTITUDE", alt_text)
+            col2.metric(t('altitude'), alt_text)
             speed_text = f"{selected_ac['velocity']:.2f} m/s ({selected_ac['velocity']*3.6:.1f} km/h)" if selected_ac["velocity"] else "unknown"
-            col1.metric("💨 SPEED", speed_text)
+            col1.metric(t('speed'), speed_text)
             heading_text = f"{selected_ac['heading']:.1f}° (true)" if selected_ac["heading"] else "unknown"
-            col2.metric("🧭 HEADING", heading_text)
-            col1.metric("📡 DISTANCE", f"{selected_ac['distance']:.0f} km")
-            col2.metric("📋 TYPE", selected_ac["type"])
+            col2.metric(t('heading'), heading_text)
+            col1.metric(t('distance'), f"{selected_ac['distance']:.0f} km")
+            col2.metric(t('type'), selected_ac["type"])
             
-            st.markdown("**🛡️ Classification**")
+            st.markdown(f"**{t('classification')}**")
             if selected_ac["is_military"]:
-                st.success("🔫 **Military Aircraft** – flagged by ICAO range or callsign keywords.")
+                st.success(t('military_msg'))
             elif selected_ac["is_drone"]:
-                st.warning("🚁 **Drone / UAV** – flagged by ICAO range, callsign keywords, or low‑altitude/speed behaviour.")
+                st.warning(t('drone_msg'))
             else:
-                st.info("✈️ **Civilian Aircraft** – no military or drone indicators.")
-            st.caption("Data source: " + ("Flightradar24 (global)" if api_key else "OpenSky Network (regional)"))
+                st.info(t('civilian_msg'))
+            st.caption(t('data_source_caption') + ("Flightradar24 (global)" if api_key else "OpenSky Network (regional)"))
 
             report_content = f"""
-SURVEILLANCE REPORT
+{t('detailed_report')}
 ===================
-Object: {selected_ac['callsign']}
-ICAO24: {selected_ac['icao24'] if selected_ac['icao24'] else 'N/A'}
-Type: {selected_ac['type']}
-Latitude: {selected_ac['lat']:.5f}
-Longitude: {selected_ac['lon']:.5f}
-Distance from radar: {selected_ac['distance']:.0f} km
-Altitude: {alt_text}
-Speed: {speed_text}
-Heading: {heading_text}
-Time of report: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-Data source: {st.session_state.data_source}
+{t('object')}: {selected_ac['callsign']}
+{t('icao')}: {selected_ac['icao24'] if selected_ac['icao24'] else 'N/A'}
+{t('type')}: {selected_ac['type']}
+{t('lat_lon')}: {selected_ac['lat']:.5f}, {selected_ac['lon']:.5f}
+{t('distance')}: {selected_ac['distance']:.0f} km
+{t('altitude')}: {alt_text}
+{t('speed')}: {speed_text}
+{t('heading')}: {heading_text}
+{t('data_source_caption')}: {st.session_state.data_source}
+{t('date')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
             st.download_button(
-                label="📥 Download Report (TXT)",
+                label=t('download_report'),
                 data=report_content,
                 file_name=f"{selected_ac['callsign']}_report.txt",
                 mime="text/plain",
                 use_container_width=True
             )
         else:
-            st.info("No aircraft detected within current range. Try increasing the range or check your location.")
+            st.info(t('no_aircraft'))
 
     with right_col:
         st.subheader("🗺️ Radar Coverage Map")
         map_fig = create_map(aircraft, radar_lat, radar_lon, max_range)
         st.plotly_chart(map_fig, use_container_width=True)
         if st.session_state.last_update:
-            st.caption(f"📡 Last update: {st.session_state.last_update.strftime('%H:%M:%S')} | Range: {max_range} km | Source: {st.session_state.data_source}")
+            st.caption(t('last_update', time=st.session_state.last_update.strftime('%H:%M:%S'), range=max_range, source=st.session_state.data_source))
         else:
-            st.caption(f"📡 Range: {max_range} km | Source: {st.session_state.data_source}")
+            st.caption(t('range_only', range=max_range, source=st.session_state.data_source))
 
 if refresh_sec > 0:
     st.markdown(

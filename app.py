@@ -285,6 +285,9 @@ Pou lisans, sipò, oswa peman:
     },
 }
 
+# -------------------------------------------------------------------
+# Helper to get translated text
+# -------------------------------------------------------------------
 def t(key, **kwargs):
     lang = st.session_state.get('language', 'en')
     text = TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
@@ -293,10 +296,13 @@ def t(key, **kwargs):
     return text
 
 # -------------------------------------------------------------------
-# Page config & language selector
+# Set page config
 # -------------------------------------------------------------------
 st.set_page_config(page_title="Surveillance Radar - Global ADS-B", layout="wide", page_icon="🔴")
 
+# -------------------------------------------------------------------
+# Language selector (top of page)
+# -------------------------------------------------------------------
 col_lang1, col_lang2, col_lang3, col_lang4 = st.columns([1,1,1,5])
 with col_lang1:
     if st.button("🇺🇸 English"):
@@ -315,12 +321,16 @@ with col_lang4:
         st.session_state.language = 'ht'
         st.rerun()
 
+# -------------------------------------------------------------------
+# Set default language if not set
+# -------------------------------------------------------------------
 if 'language' not in st.session_state:
     st.session_state.language = 'en'
 
 # -------------------------------------------------------------------
-# Enhanced drone detection (works at any altitude)
+# Classification helpers (same as before)
 # -------------------------------------------------------------------
+
 MILITARY_ICAO_PREFIXES = [
     "AE", "AD", "AF", "3C", "3E", "33", "34", "38", "39", "40", "43", "44", "45", "46", "48",
     "4B", "4C", "4D", "4E", "4F", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59",
@@ -338,7 +348,6 @@ DRONE_ICAO_PREFIXES = [
     "4CC0", "4CC1", "4CC2", "4CC3", "4CC4", "4CC5", "4CC6", "4CC7", "4CC8", "4CC9", "4CCA",
     "4CCB", "4CCC", "4CCD", "4CCE", "4CCF", "4CD0", "4CD1", "4CD2", "4CD3", "4CD4", "4CD5",
     "4CD6", "4CD7", "4CD8", "4CD9", "4CDA", "4CDB", "4CDC", "4CDD", "4CDE", "4CDF",
-    "7C", "7D", "7E", "7F", "A5", "A6", "A7", "A8", "A9", "AA", "AB", "AC", "AD", "AE", "AF",
 ]
 
 def classify_aircraft(icao24, callsign, velocity, altitude, aircraft_type=None):
@@ -352,6 +361,7 @@ def classify_aircraft(icao24, callsign, velocity, altitude, aircraft_type=None):
         if icao_upper.startswith(prefix):
             is_military = True
             break
+
     mil_keywords = ["AF", "NAVY", "ARMY", "AIR FORCE", "MIL", "RAAF", "RAF", "LUFT", "ARMEE"]
     if any(kw in callsign_upper for kw in mil_keywords):
         is_military = True
@@ -360,11 +370,11 @@ def classify_aircraft(icao24, callsign, velocity, altitude, aircraft_type=None):
         if icao_upper.startswith(prefix):
             is_drone = True
             break
-    drone_keywords = ["DRONE", "UAV", "DRON", "QUAD", "HEXA", "OCTO", "RQ", "MQ", "GLOBALHAWK", "PREDATOR", "REAPER"]
+
+    drone_keywords = ["DRONE", "UAV", "DRON", "QUAD", "HEXA", "OCTO"]
     if any(kw in callsign_upper for kw in drone_keywords):
         is_drone = True
 
-    # Heuristic for unidentified small drones – works at any altitude, but low/slow is a strong indicator
     if not is_drone and not is_military:
         if altitude is not None and altitude < 500 and velocity is not None and velocity < 30:
             is_drone = True
@@ -385,6 +395,7 @@ def classify_aircraft(icao24, callsign, velocity, altitude, aircraft_type=None):
 # -------------------------------------------------------------------
 # Helper functions
 # -------------------------------------------------------------------
+
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = radians(lat2 - lat1)
@@ -405,16 +416,20 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
+# ---------- Improved OpenSky fetch with retries ----------
 def fetch_opensky():
+    """Free OpenSky Network with improved reliability."""
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
     max_retries = 3
     timeout = 30
+
     for attempt in range(max_retries):
         try:
             resp = requests.get(url, headers=headers, timeout=timeout)
             if resp.status_code == 200:
-                return resp.json().get("states", [])
+                data = resp.json()
+                return data.get("states", [])
             elif resp.status_code == 429:
                 wait = 30
                 st.toast(t('opensky_rate_limit', wait=wait, attempt=attempt+1, max_retries=max_retries), icon="⏳")
@@ -428,10 +443,12 @@ def fetch_opensky():
         except Exception as e:
             st.toast(t('opensky_error', error=str(e)), icon="❌")
             time.sleep(2 ** attempt)
+
     st.toast(t('using_cached_toast'), icon="💾")
     return None
 
 def fetch_flightradar24(api_key):
+    """Flightradar24 API (global coverage) – requires a paid API key."""
     try:
         from flightradar24 import FlightRadar24API
         fr24 = FlightRadar24API(api_key)
@@ -455,6 +472,7 @@ def fetch_flightradar24(api_key):
         return None
 
 def fetch_data(api_key=None):
+    """Main fetch function – tries Flightradar24 if key provided, else OpenSky."""
     if api_key:
         fr_data = fetch_flightradar24(api_key)
         if fr_data is not None:
@@ -462,6 +480,7 @@ def fetch_data(api_key=None):
         st.info("Flightradar24 not available – falling back to OpenSky (limited range).")
     return fetch_opensky()
 
+# ---------- Radar visualisation ----------
 def bearing(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     y = sin(lon2 - lon1) * cos(lat2)
@@ -487,74 +506,153 @@ def create_radar_polar(aircraft, radar_lat, radar_lon, max_range_km):
             else:
                 colors.append("#2eff9e")
             labels.append(ac["callsign"])
+
     fig = go.Figure()
     if r_vals:
         fig.add_trace(go.Scatterpolar(
-            r=r_vals, theta=theta_vals, mode='markers+text',
+            r=r_vals,
+            theta=theta_vals,
+            mode='markers+text',
             marker=dict(size=10, color=colors, line=dict(width=1, color='white')),
-            text=labels, textposition="top center", name='Aircraft'
+            text=labels,
+            textposition="top center",
+            name='Aircraft'
         ))
+
     fig.update_layout(
         polar=dict(
-            radialaxis=dict(range=[0, max_range_km], tickvals=[max_range_km*0.25, max_range_km*0.5, max_range_km*0.75, max_range_km],
-                            ticktext=[f"{int(max_range_km*0.25)}km", f"{int(max_range_km*0.5)}km", f"{int(max_range_km*0.75)}km", f"{int(max_range_km)}km"],
-                            gridcolor='#2a4f6e', linecolor='#2aff9e', ticks='outside', showticklabels=True),
-            angularaxis=dict(tickmode='array', tickvals=[0,45,90,135,180,225,270,315],
-                             ticktext=['N','NE','E','SE','S','SW','W','NW'],
-                             direction='clockwise', rotation=90, gridcolor='#2a4f6e', linecolor='#2aff9e'),
+            radialaxis=dict(
+                range=[0, max_range_km],
+                tickvals=[max_range_km * 0.25, max_range_km * 0.5, max_range_km * 0.75, max_range_km],
+                ticktext=[f"{int(max_range_km*0.25)}km", f"{int(max_range_km*0.5)}km", f"{int(max_range_km*0.75)}km", f"{int(max_range_km)}km"],
+                gridcolor='#2a4f6e',
+                linecolor='#2aff9e',
+                ticks='outside',
+                showticklabels=True
+            ),
+            angularaxis=dict(
+                tickmode='array',
+                tickvals=[0, 45, 90, 135, 180, 225, 270, 315],
+                ticktext=['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
+                direction='clockwise',
+                rotation=90,
+                gridcolor='#2a4f6e',
+                linecolor='#2aff9e'
+            ),
             bgcolor='#03060c'
         ),
         title=dict(text="Radar Sweep View", font=dict(color='#ccd6f6')),
-        paper_bgcolor='#03060c', plot_bgcolor='#03060c', margin=dict(l=80, r=80, t=80, b=80)
+        paper_bgcolor='#03060c',
+        plot_bgcolor='#03060c',
+        margin=dict(l=80, r=80, t=80, b=80)
     )
+
     angle = (datetime.now().second * 6) % 360
-    sweep_line = go.Scatterpolar(r=[0, max_range_km], theta=[angle, angle], mode='lines',
-                                 line=dict(color='#ffaa44', width=2), name='Sweep', showlegend=False)
+    sweep_line = go.Scatterpolar(
+        r=[0, max_range_km],
+        theta=[angle, angle],
+        mode='lines',
+        line=dict(color='#ffaa44', width=2),
+        name='Sweep',
+        showlegend=False
+    )
     fig.add_trace(sweep_line)
+
     return fig
 
+# ---------- CORRECTED create_map ----------
 def create_map(aircraft, radar_lat, radar_lon, max_range_km):
     if not aircraft:
         fig = go.Figure()
-        fig.add_trace(go.Scattermapbox(lat=[radar_lat], lon=[radar_lon], mode='markers',
-                                        marker=dict(size=12, color='#ffaa44', symbol='circle'), name='Radar Center'))
-        fig.update_layout(mapbox=dict(style="dark", center=dict(lat=radar_lat, lon=radar_lon), zoom=4),
-                          margin=dict(l=0, r=0, t=0, b=0))
+        fig.add_trace(go.Scattermapbox(
+            lat=[radar_lat],
+            lon=[radar_lon],
+            mode='markers',
+            marker=dict(size=12, color='#ffaa44', symbol='circle'),
+            name='Radar Center'
+        ))
+        fig.update_layout(
+            mapbox=dict(
+                style="dark",
+                center=dict(lat=radar_lat, lon=radar_lon),
+                zoom=4
+            ),
+            margin=dict(l=0, r=0, t=0, b=0)
+        )
         return fig
+
     df = pd.DataFrame(aircraft)
+    # Create categorical color mapping
     df['color_group'] = df.apply(lambda row: 'military' if row.get('is_military', False) else ('drone' if row.get('is_drone', False) else 'civilian'), axis=1)
     color_map = {'military': '#ff4444', 'drone': '#ffaa44', 'civilian': '#2eff9e'}
     df['size'] = df['velocity'].apply(lambda v: 10 if (v and v > 0.5) else 8)
-    fig = px.scatter_mapbox(df, lat='lat', lon='lon', hover_name='callsign',
-                            hover_data={'altitude': True, 'velocity': True, 'heading': True, 'type': True, 'distance': True},
-                            zoom=4, height=600, color='color_group', color_discrete_map=color_map, size='size', size_max=12, title='')
-    fig.add_trace(go.Scattermapbox(lat=[radar_lat], lon=[radar_lon], mode='markers',
-                                    marker=dict(size=12, color='#ffaa44', symbol='circle'), name='Radar Center'))
+
+    fig = px.scatter_mapbox(
+        df,
+        lat='lat',
+        lon='lon',
+        hover_name='callsign',
+        hover_data={'altitude': True, 'velocity': True, 'heading': True, 'type': True, 'distance': True},
+        zoom=4,
+        height=600,
+        color='color_group',
+        color_discrete_map=color_map,
+        size='size',
+        size_max=12,
+        title=''
+    )
+
+    # Add radar center marker
+    fig.add_trace(go.Scattermapbox(
+        lat=[radar_lat],
+        lon=[radar_lon],
+        mode='markers',
+        marker=dict(size=12, color='#ffaa44', symbol='circle'),
+        name='Radar Center'
+    ))
+
+    # Range rings (no dash – only color and width are valid)
     ring_distances = [0.25, 0.5, 0.75, 1.0]
     for frac in ring_distances:
         r_km = max_range_km * frac
-        circle_lats, circle_lons = [], []
-        for i in range(65):
-            brng = 360 * i / 64
+        num_points = 64
+        circle_lats = []
+        circle_lons = []
+        for i in range(num_points+1):
+            brng = 360 * i / num_points
             lat2, lon2 = destination_point(radar_lat, radar_lon, r_km, brng)
             circle_lats.append(lat2)
             circle_lons.append(lon2)
-        fig.add_trace(go.Scattermapbox(lat=circle_lats, lon=circle_lons, mode='lines',
-                                        line=dict(width=1, color='#28e6a8'), showlegend=False, hoverinfo='none'))
-    fig.update_layout(mapbox=dict(style="dark", center=dict(lat=radar_lat, lon=radar_lon), zoom=4),
-                      margin=dict(l=0, r=0, t=0, b=0),
-                      legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+        fig.add_trace(go.Scattermapbox(
+            lat=circle_lats,
+            lon=circle_lons,
+            mode='lines',
+            line=dict(width=1, color='#28e6a8'),
+            showlegend=False,
+            hoverinfo='none'
+        ))
+
+    fig.update_layout(
+        mapbox=dict(
+            style="dark",
+            center=dict(lat=radar_lat, lon=radar_lon),
+            zoom=4
+        ),
+        margin=dict(l=0, r=0, t=0, b=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
     return fig
 
 # -------------------------------------------------------------------
 # Streamlit UI
 # -------------------------------------------------------------------
+
 st.title(t('app_title'))
 st.markdown(t('subtitle'))
 st.markdown(t('owner'))
 st.markdown(t('business'))
 
-# Session state
+# Session state for cached data and error dismissal
 if "last_aircraft" not in st.session_state:
     st.session_state.last_aircraft = []
 if "last_update" not in st.session_state:
@@ -568,7 +666,7 @@ if "prev_lon" not in st.session_state:
 if "dismiss_error" not in st.session_state:
     st.session_state.dismiss_error = False
 
-# Geolocation
+# Geolocation from URL parameters
 query_params = st.query_params
 geo_lat = query_params.get("lat")
 geo_lon = query_params.get("lon")
@@ -603,6 +701,7 @@ with st.sidebar:
         radar_lon = st.number_input(t('radar_longitude'), value=-74.0060, format="%.5f")
     max_range = st.number_input(t('max_range'), min_value=30, max_value=2000, value=500, step=50)
 
+    # Data source configuration
     st.divider()
     st.header(t('data_source'))
     st.markdown(t('global_coverage_info'))
@@ -612,6 +711,7 @@ with st.sidebar:
     else:
         st.info(t('opensky_info'))
 
+    # Auto-refresh (optional)
     auto_refresh = st.checkbox(t('auto_refresh'), value=False)
     if auto_refresh:
         refresh_sec = st.number_input(t('refresh_interval'), min_value=10, max_value=300, value=60, step=10)
@@ -706,11 +806,13 @@ if raw_data is not None:
                     "is_military": classification["is_military"],
                     "is_drone": classification["is_drone"]
                 })
+
     st.session_state.last_aircraft = aircraft
     st.session_state.last_update = datetime.now()
     st.session_state.data_source = "Flightradar24" if api_key else "OpenSky"
     st.session_state.dismiss_error = False
 else:
+    # No fresh data
     if st.session_state.last_aircraft:
         aircraft = st.session_state.last_aircraft
         st.warning(t('using_cached'))
@@ -734,8 +836,13 @@ else:
         else:
             st.info(t('error_dismissed'))
 
+# -------------------------------------------------------------------
+# Display radar and table (only if aircraft is defined)
+# -------------------------------------------------------------------
+
 if 'aircraft' in locals():
     left_col, right_col = st.columns([0.5, 0.5])
+
     with left_col:
         st.subheader(t('radar_sweep'))
         polar_fig = create_radar_polar(aircraft, radar_lat, radar_lon, max_range)
@@ -777,6 +884,7 @@ if 'aircraft' in locals():
             col2.metric(t('heading'), heading_text)
             col1.metric(t('distance'), f"{selected_ac['distance']:.0f} km")
             col2.metric(t('type'), selected_ac["type"])
+            
             st.markdown(f"**{t('classification')}**")
             if selected_ac["is_military"]:
                 st.success(t('military_msg'))
@@ -798,7 +906,7 @@ if 'aircraft' in locals():
 {t('speed')}: {speed_text}
 {t('heading')}: {heading_text}
 {t('data_source_caption')}: {st.session_state.data_source}
-Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+{t('date')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
             st.download_button(
                 label=t('download_report'),

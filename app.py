@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 
 # -------------------------------------------------------------------
-# Language dictionaries (full)
+# Language dictionaries (fully corrected)
 # -------------------------------------------------------------------
 TRANSLATIONS = {
     'en': {

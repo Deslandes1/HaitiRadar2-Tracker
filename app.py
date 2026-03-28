@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from math import radians, sin, cos, sqrt, atan2, pi, asin, degrees
 import time
+import random
 from datetime import datetime
 
 # -------------------------------------------------------------------
@@ -26,6 +27,7 @@ TRANSLATIONS = {
         'api_key_placeholder': 'Enter your API key (optional)',
         'global_active': '🌍 **Global coverage active** – you will see aircraft worldwide.',
         'opensky_info': '📡 Using OpenSky Network (regional coverage, free).',
+        'demo_mode': '🎮 Demo Mode (sample data – for testing only)',
         'auto_refresh': 'Auto‑refresh page',
         'refresh_interval': 'Refresh Interval (sec)',
         'my_location': '📍 My Location',
@@ -53,12 +55,12 @@ TRANSLATIONS = {
         'civilian_msg': '✈️ **Civilian Aircraft** – no military or drone indicators.',
         'data_source_caption': 'Data source: ',
         'download_report': '📥 Download Report (TXT)',
-        'no_aircraft': 'No aircraft detected within current range. Try increasing the range or check your location.',
+        'no_aircraft': 'No aircraft detected within current range. This is often due to limited OpenSky coverage in your area. Try:\n- Centering the radar on a busier region (e.g., New York).\n- Purchasing a Flightradar24 API key for true global coverage.',
         'last_update': '📡 Last update: {time} | Range: {range} km | Source: {source}',
         'range_only': '📡 Range: {range} km | Source: {source}',
         'fetching': 'Fetching aircraft data...',
         'using_cached': '⚠️ Using cached data (API unavailable)',
-        'no_data_error': '❌ No data available. Check your internet connection or API key.',
+        'no_data_error': '❌ No live aircraft data available from OpenSky. For real‑time tracking in your area, please obtain a Flightradar24 API key (paid) or enable Demo Mode to test the interface.',
         'dismiss': 'Dismiss',
         'retry': 'Retry',
         'error_dismissed': 'Error dismissed. Click \'Refresh Now\' to retry.',
@@ -68,6 +70,8 @@ TRANSLATIONS = {
         'opensky_error': 'OpenSky error: {error}',
         'using_cached_toast': 'Using cached data (OpenSky unavailable)',
         'location_updated': '📍 Location updated – refreshing data...',
+        'demo_active': '🎮 DEMO MODE – sample data (for testing only)',
+        'api_status': 'API Status: {status}',
     },
     'fr': {
         'app_title': '🔴 RADAR DE SURVEILLANCE GLOBAL',
@@ -84,6 +88,7 @@ TRANSLATIONS = {
         'api_key_placeholder': 'Entrez votre clé API (optionnel)',
         'global_active': '🌍 **Couverture mondiale active** – vous verrez les aéronefs du monde entier.',
         'opensky_info': '📡 Utilisation du réseau OpenSky (couverture régionale, gratuit).',
+        'demo_mode': '🎮 Mode démo (données d’exemple – test uniquement)',
         'auto_refresh': 'Actualisation automatique',
         'refresh_interval': 'Intervalle d\'actualisation (s)',
         'my_location': '📍 Ma position',
@@ -111,12 +116,12 @@ TRANSLATIONS = {
         'civilian_msg': '✈️ **Aéronef civil** – aucun indicateur militaire ou drone.',
         'data_source_caption': 'Source de données : ',
         'download_report': '📥 Télécharger le rapport (TXT)',
-        'no_aircraft': 'Aucun aéronef détecté dans la portée actuelle. Essayez d\'augmenter la portée ou vérifiez votre emplacement.',
+        'no_aircraft': 'Aucun aéronef détecté dans la portée actuelle. Cela est souvent dû à la couverture limitée d’OpenSky dans votre région. Essayez :\n- Centrer le radar sur une zone plus fréquentée (ex. New York).\n- Acheter une clé API Flightradar24 pour une couverture mondiale.',
         'last_update': '📡 Dernière mise à jour : {time} | Portée : {range} km | Source : {source}',
         'range_only': '📡 Portée : {range} km | Source : {source}',
         'fetching': 'Récupération des données aéronefs...',
         'using_cached': '⚠️ Utilisation des données mises en cache (API indisponible)',
-        'no_data_error': '❌ Aucune donnée disponible. Vérifiez votre connexion internet ou votre clé API.',
+        'no_data_error': '❌ Aucune donnée aéronef en direct disponible via OpenSky. Pour un suivi en temps réel dans votre région, veuillez obtenir une clé API Flightradar24 (payante) ou activer le mode démo pour tester l’interface.',
         'dismiss': 'Ignorer',
         'retry': 'Réessayer',
         'error_dismissed': 'Erreur ignorée. Cliquez sur "Actualiser" pour réessayer.',
@@ -126,6 +131,8 @@ TRANSLATIONS = {
         'opensky_error': 'Erreur OpenSky : {error}',
         'using_cached_toast': 'Utilisation des données mises en cache (OpenSky indisponible)',
         'location_updated': '📍 Position mise à jour – actualisation des données...',
+        'demo_active': '🎮 MODE DÉMO – données d’exemple (test uniquement)',
+        'api_status': 'État API : {status}',
     },
     'es': {
         'app_title': '🔴 RADAR DE VIGILANCIA GLOBAL',
@@ -142,6 +149,7 @@ TRANSLATIONS = {
         'api_key_placeholder': 'Ingrese su clave API (opcional)',
         'global_active': '🌍 **Cobertura global activa** – verá aeronaves en todo el mundo.',
         'opensky_info': '📡 Usando OpenSky Network (cobertura regional, gratis).',
+        'demo_mode': '🎮 Modo demo (datos de ejemplo – solo pruebas)',
         'auto_refresh': 'Actualización automática',
         'refresh_interval': 'Intervalo de actualización (seg)',
         'my_location': '📍 Mi ubicación',
@@ -169,12 +177,12 @@ TRANSLATIONS = {
         'civilian_msg': '✈️ **Aeronave civil** – sin indicadores militares o de dron.',
         'data_source_caption': 'Fuente de datos: ',
         'download_report': '📥 Descargar informe (TXT)',
-        'no_aircraft': 'No se detectaron aeronaves en el alcance actual. Intente aumentar el alcance o verifique su ubicación.',
+        'no_aircraft': 'No se detectaron aeronaves en el alcance actual. Esto suele deberse a la cobertura limitada de OpenSky en su área. Pruebe:\n- Centrar el radar en una región con más tráfico (ej. Nueva York).\n- Adquirir una clave API de Flightradar24 para cobertura global.',
         'last_update': '📡 Última actualización: {time} | Alcance: {range} km | Fuente: {source}',
         'range_only': '📡 Alcance: {range} km | Fuente: {source}',
         'fetching': 'Obteniendo datos de aeronaves...',
         'using_cached': '⚠️ Usando datos en caché (API no disponible)',
-        'no_data_error': '❌ No hay datos disponibles. Verifique su conexión a Internet o su clave API.',
+        'no_data_error': '❌ No hay datos de aeronaves en directo disponibles a través de OpenSky. Para un seguimiento en tiempo real en su área, obtenga una clave API de Flightradar24 (de pago) o active el modo demo para probar la interfaz.',
         'dismiss': 'Descartar',
         'retry': 'Reintentar',
         'error_dismissed': 'Error descartado. Haga clic en "Actualizar ahora" para reintentar.',
@@ -184,6 +192,8 @@ TRANSLATIONS = {
         'opensky_error': 'Error de OpenSky: {error}',
         'using_cached_toast': 'Usando datos en caché (OpenSky no disponible)',
         'location_updated': '📍 Ubicación actualizada – refrescando datos...',
+        'demo_active': '🎮 MODO DEMO – datos de ejemplo (solo pruebas)',
+        'api_status': 'Estado API: {status}',
     },
     'ht': {
         'app_title': '🔴 RADAR SIVEYANS GLOBAL',
@@ -200,6 +210,7 @@ TRANSLATIONS = {
         'api_key_placeholder': 'Antre kle API ou a (opsyonèl)',
         'global_active': '🌍 **Kouvèti mondyal aktive** – w ap wè avyon atravè lemonn.',
         'opensky_info': '📡 Sèvi ak OpenSky Network (kouvèti rejyonal, gratis).',
+        'demo_mode': '🎮 Mòd demonstrasyon (done egzanp – tès sèlman)',
         'auto_refresh': 'Aktualizasyon otomatik',
         'refresh_interval': 'Entèval aktualizasyon (s)',
         'my_location': '📍 Kote mwen ye',
@@ -227,12 +238,12 @@ TRANSLATIONS = {
         'civilian_msg': '✈️ **Avyon sivil** – pa gen endikatè militè oswa dron.',
         'data_source_caption': 'Sous done: ',
         'download_report': '📥 Telechaje rapò (TXT)',
-        'no_aircraft': 'Pa gen okenn avyon detekte nan ran aktyèl la. Eseye ogmante ran oswa tcheke kote ou ye.',
+        'no_aircraft': 'Pa gen okenn avyon detekte nan ran aktyèl la. Sa souvan rive akòz kouvèti limite OpenSky nan zòn ou a. Eseye:\n- Mete radar nan yon zòn ki gen plis trafik (eg. New York).\n- Achte yon kle API Flightradar24 pou kouvèti mondyal.',
         'last_update': '📡 Dènye mizajou: {time} | Ran: {range} km | Sous: {source}',
         'range_only': '📡 Ran: {range} km | Sous: {source}',
         'fetching': 'Ap chache done avyon...',
         'using_cached': '⚠️ Sèvi ak done ki nan kachèt (API pa disponib)',
-        'no_data_error': '❌ Pa gen done disponib. Tcheke koneksyon entènèt ou oswa kle API ou.',
+        'no_data_error': '❌ Pa gen done avyon an dirèk disponib atravè OpenSky. Pou yon swivi an tan reyèl nan zòn ou a, tanpri jwenn yon kle API Flightradar24 (peye) oswa aktive mòd Demo pou teste koòdone yo.',
         'dismiss': 'Fèmen',
         'retry': 'Eseye ankò',
         'error_dismissed': 'Erè fèmen. Klike sou "Aktualize kounye a" pou eseye ankò.',
@@ -242,6 +253,8 @@ TRANSLATIONS = {
         'opensky_error': 'Erè OpenSky: {error}',
         'using_cached_toast': 'Sèvi ak done kachèt (OpenSky pa disponib)',
         'location_updated': '📍 Kote mete ajou – ap rafrechi done...',
+        'demo_active': '🎮 MÒD DEMO – done egzanp (tès sèlman)',
+        'api_status': 'Estati API: {status}',
     },
 }
 
@@ -364,7 +377,6 @@ def destination_point(lat, lon, distance_km, bearing_deg):
 
     return degrees(lat2), degrees(lon2)
 
-# ---------- Improved fetch with retries ----------
 def fetch_opensky():
     url = "https://opensky-network.org/api/states/all"
     headers = {"User-Agent": "Mozilla/5.0 (compatible; RadarApp/1.0)"}
@@ -416,14 +428,46 @@ def fetch_flightradar24(api_key):
         st.warning(f"Flightradar24 API error: {e}")
         return None
 
-def fetch_data(api_key=None):
-    if api_key:
-        fr_data = fetch_flightradar24(api_key)
-        if fr_data is not None:
-            return fr_data
-        st.info("Flightradar24 not available – falling back to OpenSky (limited range).")
-    return fetch_opensky()
+def generate_demo_aircraft(radar_lat, radar_lon, max_range_km, num_aircraft=15):
+    """Create realistic sample aircraft around the given centre (for testing only)."""
+    demo_aircraft = []
+    callsigns = ["AAL", "DAL", "UAL", "SWA", "JBU", "FDX", "UPS", "BAW", "KLM", "AFR", "DLH", "JAL", "CPA", "QFA"]
+    types = ["✈️ Civilian", "🔫 Military", "🚁 Drone"]
+    weights = [0.85, 0.10, 0.05]
 
+    for i in range(num_aircraft):
+        dist = random.uniform(20, max_range_km)
+        brng = random.uniform(0, 360)
+        lat2, lon2 = destination_point(radar_lat, radar_lon, dist, brng)
+        alt = random.uniform(0, 12000)
+        speed = random.uniform(0, 250)
+        heading = random.uniform(0, 360)
+        type_choice = random.choices(types, weights=weights)[0]
+        is_military = (type_choice == "🔫 Military")
+        is_drone = (type_choice == "🚁 Drone")
+        callsign = f"{random.choice(callsigns)}{random.randint(100, 9999)}"
+        icao24 = f"{random.randint(0, 0xFFFFFF):06X}"
+        demo_aircraft.append({
+            "icao24": icao24,
+            "callsign": callsign,
+            "lat": lat2,
+            "lon": lon2,
+            "altitude": alt,
+            "velocity": speed,
+            "heading": heading,
+            "vertical_rate": random.uniform(-10, 10),
+            "on_ground": (alt < 500 and speed < 50),
+            "distance": dist,
+            "type": type_choice,
+            "is_military": is_military,
+            "is_drone": is_drone,
+        })
+    return demo_aircraft
+
+def fetch_data(api_key=None):
+    return fetch_opensky()  # only real data
+
+# ---------- Radar visualisation ----------
 def bearing(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     y = sin(lon2 - lon1) * cos(lat2)
@@ -529,6 +573,8 @@ if "prev_lon" not in st.session_state:
     st.session_state.prev_lon = None
 if "dismiss_error" not in st.session_state:
     st.session_state.dismiss_error = False
+if "demo_mode" not in st.session_state:
+    st.session_state.demo_mode = False
 
 # Geolocation
 query_params = st.query_params
@@ -569,8 +615,18 @@ with st.sidebar:
     st.header(t('data_source'))
     st.markdown(t('global_coverage_info'))
     api_key = st.text_input(t('api_key_label'), type="password", placeholder=t('api_key_placeholder'))
+
+    # Demo mode (off by default, clearly labeled as test)
+    demo_mode = st.checkbox(t('demo_mode'), value=st.session_state.demo_mode,
+                            help="Use sample aircraft data to test the interface – not real traffic.")
+    if demo_mode != st.session_state.demo_mode:
+        st.session_state.demo_mode = demo_mode
+        st.rerun()
+
     if api_key:
         st.info(t('global_active'))
+    elif st.session_state.demo_mode:
+        st.info(t('demo_active'))
     else:
         st.info(t('opensky_info'))
 
@@ -620,84 +676,92 @@ with st.sidebar:
     st.caption(t('terms'))
 
 # Fetch data
-with st.spinner(t('fetching')):
-    raw_data = fetch_data(api_key if api_key else None)
-
-if raw_data is not None:
-    aircraft = []
-    if api_key:
-        for item in raw_data:
-            dist = haversine(radar_lat, radar_lon, item["lat"], item["lon"])
-            if dist <= max_range:
-                classification = classify_aircraft(item["icao24"], item["callsign"], item["velocity"], item["geo_alt"])
-                aircraft.append({
-                    **item,
-                    "distance": dist,
-                    "type": classification["type"],
-                    "is_military": classification["is_military"],
-                    "is_drone": classification["is_drone"]
-                })
-    else:
-        for s in raw_data:
-            icao24 = s[0]
-            callsign = s[1].strip() if s[1] else None
-            lon = s[5]
-            lat = s[6]
-            geo_alt = s[7]
-            on_ground = s[8]
-            velocity = s[9]
-            heading = s[10]
-            vert_rate = s[11]
-            if lat is None or lon is None:
-                continue
-            dist = haversine(radar_lat, radar_lon, lat, lon)
-            if dist <= max_range:
-                classification = classify_aircraft(icao24, callsign, velocity, geo_alt)
-                aircraft.append({
-                    "icao24": icao24,
-                    "callsign": callsign or f"FLT{icao24[-4:]}",
-                    "lat": lat,
-                    "lon": lon,
-                    "altitude": geo_alt if geo_alt is not None else None,
-                    "velocity": velocity if velocity is not None else None,
-                    "heading": heading if heading is not None else None,
-                    "vertical_rate": vert_rate if vert_rate is not None else None,
-                    "on_ground": on_ground or False,
-                    "distance": dist,
-                    "type": classification["type"],
-                    "is_military": classification["is_military"],
-                    "is_drone": classification["is_drone"]
-                })
-
+if st.session_state.demo_mode:
+    aircraft = generate_demo_aircraft(radar_lat, radar_lon, max_range, num_aircraft=20)
     st.session_state.last_aircraft = aircraft
     st.session_state.last_update = datetime.now()
-    st.session_state.data_source = "Flightradar24" if api_key else "OpenSky"
+    st.session_state.data_source = "Demo"
     st.session_state.dismiss_error = False
 else:
-    if st.session_state.last_aircraft:
-        aircraft = st.session_state.last_aircraft
-        st.warning(t('using_cached'))
+    with st.spinner(t('fetching')):
+        raw_data = fetch_data(api_key if api_key else None)
+
+    if raw_data is not None:
+        aircraft = []
+        if api_key:
+            for item in raw_data:
+                dist = haversine(radar_lat, radar_lon, item["lat"], item["lon"])
+                if dist <= max_range:
+                    classification = classify_aircraft(item["icao24"], item["callsign"], item["velocity"], item["geo_alt"])
+                    aircraft.append({
+                        **item,
+                        "distance": dist,
+                        "type": classification["type"],
+                        "is_military": classification["is_military"],
+                        "is_drone": classification["is_drone"]
+                    })
+        else:
+            for s in raw_data:
+                icao24 = s[0]
+                callsign = s[1].strip() if s[1] else None
+                lon = s[5]
+                lat = s[6]
+                geo_alt = s[7]
+                on_ground = s[8]
+                velocity = s[9]
+                heading = s[10]
+                vert_rate = s[11]
+                if lat is None or lon is None:
+                    continue
+                dist = haversine(radar_lat, radar_lon, lat, lon)
+                if dist <= max_range:
+                    classification = classify_aircraft(icao24, callsign, velocity, geo_alt)
+                    aircraft.append({
+                        "icao24": icao24,
+                        "callsign": callsign or f"FLT{icao24[-4:]}",
+                        "lat": lat,
+                        "lon": lon,
+                        "altitude": geo_alt if geo_alt is not None else None,
+                        "velocity": velocity if velocity is not None else None,
+                        "heading": heading if heading is not None else None,
+                        "vertical_rate": vert_rate if vert_rate is not None else None,
+                        "on_ground": on_ground or False,
+                        "distance": dist,
+                        "type": classification["type"],
+                        "is_military": classification["is_military"],
+                        "is_drone": classification["is_drone"]
+                    })
+
+        st.session_state.last_aircraft = aircraft
+        st.session_state.last_update = datetime.now()
+        st.session_state.data_source = "Flightradar24" if api_key else "OpenSky"
         st.session_state.dismiss_error = False
     else:
-        aircraft = []
-        if not st.session_state.dismiss_error:
-            error_placeholder = st.empty()
-            with error_placeholder.container():
-                st.error(t('no_data_error'))
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button(t('dismiss'), key="dismiss_error_btn", width='stretch'):
-                        st.session_state.dismiss_error = True
-                        st.rerun()
-                with col2:
-                    if st.button(t('retry'), key="retry_btn", width='stretch'):
-                        st.cache_data.clear()
-                        st.session_state.dismiss_error = False
-                        st.rerun()
+        # No fresh data
+        if st.session_state.last_aircraft:
+            aircraft = st.session_state.last_aircraft
+            st.warning(t('using_cached'))
+            st.session_state.dismiss_error = False
         else:
-            st.info(t('error_dismissed'))
+            aircraft = []
+            if not st.session_state.dismiss_error:
+                error_placeholder = st.empty()
+                with error_placeholder.container():
+                    st.error(t('no_data_error'))
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button(t('dismiss'), key="dismiss_error_btn", width='stretch'):
+                            st.session_state.dismiss_error = True
+                            st.rerun()
+                    with col2:
+                        if st.button(t('retry'), key="retry_btn", width='stretch'):
+                            st.cache_data.clear()
+                            st.session_state.dismiss_error = False
+                            st.rerun()
+            else:
+                st.info(t('error_dismissed'))
 
-if 'aircraft' in locals():
+if 'aircraft' in locals() and aircraft:
     left_col, right_col = st.columns([0.5, 0.5])
     with left_col:
         st.subheader(t('radar_sweep'))
@@ -747,7 +811,7 @@ if 'aircraft' in locals():
                 st.warning(t('drone_msg'))
             else:
                 st.info(t('civilian_msg'))
-            st.caption(t('data_source_caption') + ("Flightradar24 (global)" if api_key else "OpenSky Network (regional)"))
+            st.caption(t('data_source_caption') + st.session_state.data_source)
 
             report_content = f"""
 {t('detailed_report')}
@@ -781,8 +845,11 @@ Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             st.caption(t('last_update', time=st.session_state.last_update.strftime('%H:%M:%S'), range=max_range, source=st.session_state.data_source))
         else:
             st.caption(t('range_only', range=max_range, source=st.session_state.data_source))
+else:
+    # No aircraft in any form
+    st.info("No aircraft to display. Try adjusting the range, or enable Demo Mode to test the interface.")
 
-if refresh_sec > 0:
+if refresh_sec > 0 and not st.session_state.demo_mode:
     st.markdown(
         f"""
         <script>

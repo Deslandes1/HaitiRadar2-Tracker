@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 
 # -------------------------------------------------------------------
-# Language dictionaries
+# Language dictionaries (all values on one line – safe)
 # -------------------------------------------------------------------
 TRANSLATIONS = {
     'en': {
@@ -31,17 +31,7 @@ TRANSLATIONS = {
         'my_location': '📍 My Location',
         'refresh_now': '🔄 Refresh Now',
         'license_title': '📜 **Software License**',
-        'license_text': """
-**Proprietary Commercial Software**  
-Copyright © 2025 Gesner Deslandes. All rights reserved.
-
-This software is **licensed**, not sold.  
-You may use it only after purchasing a valid license from the author.
-
-**Unauthorized copying, distribution, or resale is strictly prohibited.**
-
-For licensing, support, or payments:
-""",
+        'license_text': '**Proprietary Commercial Software**  \nCopyright © 2025 Gesner Deslandes. All rights reserved.\n\nThis software is **licensed**, not sold.  \nYou may use it only after purchasing a valid license from the author.\n\n**Unauthorized copying, distribution, or resale is strictly prohibited.**\n\nFor licensing, support, or payments:\n',
         'contact_phone': '📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`',
         'contact_email': '📧 **Email**: `deslandes78@gmail.com`',
         'terms': 'By using this software you agree to the terms above.',
@@ -99,17 +89,7 @@ For licensing, support, or payments:
         'my_location': '📍 Ma position',
         'refresh_now': '🔄 Actualiser',
         'license_title': '📜 **Licence du logiciel**',
-        'license_text': """
-**Logiciel commercial propriétaire**  
-Copyright © 2025 Gesner Deslandes. Tous droits réservés.
-
-Ce logiciel est **sous licence**, non vendu.  
-Vous ne pouvez l'utiliser qu'après avoir acheté une licence valide auprès de l'auteur.
-
-**La copie, distribution ou revente non autorisée est strictement interdite.**
-
-Pour les licences, support ou paiements :
-""",
+        'license_text': '**Logiciel commercial propriétaire**  \nCopyright © 2025 Gesner Deslandes. Tous droits réservés.\n\nCe logiciel est **sous licence**, non vendu.  \nVous ne pouvez l\'utiliser qu\'après avoir acheté une licence valide auprès de l\'auteur.\n\n**La copie, distribution ou revente non autorisée est strictement interdite.**\n\nPour les licences, support ou paiements :\n',
         'contact_phone': '📞 **Prisme Transfer** (Digicel Moncash) : `(509) 4738-5663`',
         'contact_email': '📧 **Email** : `deslandes78@gmail.com`',
         'terms': 'En utilisant ce logiciel, vous acceptez les conditions ci-dessus.',
@@ -167,17 +147,7 @@ Pour les licences, support ou paiements :
         'my_location': '📍 Mi ubicación',
         'refresh_now': '🔄 Actualizar ahora',
         'license_title': '📜 **Licencia de software**',
-        'license_text': """
-**Software comercial propietario**  
-Copyright © 2025 Gesner Deslandes. Todos los derechos reservados.
-
-Este software está **bajo licencia**, no se vende.  
-Solo puede usarlo después de comprar una licencia válida al autor.
-
-**La copia, distribución o reventa no autorizada está estrictamente prohibida.**
-
-Para licencias, soporte o pagos:
-""",
+        'license_text': '**Software comercial propietario**  \nCopyright © 2025 Gesner Deslandes. Todos los derechos reservados.\n\nEste software está **bajo licencia**, no se vende.  \nSolo puede usarlo después de comprar una licencia válida al autor.\n\n**La copia, distribución o reventa no autorizada está estrictamente prohibida.**\n\nPara licencias, soporte o pagos:\n',
         'contact_phone': '📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`',
         'contact_email': '📧 **Correo electrónico**: `deslandes78@gmail.com`',
         'terms': 'Al usar este software acepta los términos anteriores.',
@@ -235,17 +205,7 @@ Para licencias, soporte o pagos:
         'my_location': '📍 Kote mwen ye',
         'refresh_now': '🔄 Aktualize kounye a',
         'license_title': '📜 **Lisans lojisyèl**',
-        'license_text': """
-**Lojisyèl komèsyal pwopriyetè**  
-Copyright © 2025 Gesner Deslandes. Tout dwa rezève.
-
-Lojisyèl sa a **gen lisans**, li pa vann.  
-Ou ka sèvi ak li sèlman apre w fin achte yon lisans valab nan men otè a.
-
-**Kopi, distribisyon oswa revent san otorizasyon entèdi.**
-
-Pou lisans, sipò, oswa peman:
-""",
+        'license_text': '**Lojisyèl komèsyal pwopriyetè**  \nCopyright © 2025 Gesner Deslandes. Tout dwa rezève.\n\nLojisyèl sa a **gen lisans**, li pa vann.  \nOu ka sèvi ak li sèlman apre w fin achte yon lisans valab nan men otè a.\n\n**Kopi, distribisyon oswa revent san otorizasyon entèdi.**\n\nPou lisans, sipò, oswa peman:\n',
         'contact_phone': '📞 **Prisme Transfer** (Digicel Moncash): `(509) 4738-5663`',
         'contact_email': '📧 **Imèl**: `deslandes78@gmail.com`',
         'terms': 'Lè w sèvi ak lojisyèl sa a, ou dakò ak kondisyon ki anwo yo.',

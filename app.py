@@ -6,10 +6,10 @@ import plotly.graph_objects as go
 from math import radians, sin, cos, sqrt, atan2, pi, asin, degrees
 import time
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # -------------------------------------------------------------------
-# Language dictionaries (extended with satellite keys)
+# Language dictionaries (extended with satellite keys and demo strings)
 # -------------------------------------------------------------------
 TRANSLATIONS = {
     'en': {
@@ -92,6 +92,8 @@ TRANSLATIONS = {
         'sat_pass_location': 'Predict passes over:',
         'sat_latitude': 'Latitude',
         'sat_longitude': 'Longitude',
+        'sat_demo_mode': '🎮 Demo Mode (sample data – for testing only)',
+        'sat_demo_active': '🎮 DEMO MODE – sample satellite data (testing only)',
     },
     'fr': {
         'app_title': '🔴 RADAR DE SURVEILLANCE GLOBAL',
@@ -153,7 +155,7 @@ TRANSLATIONS = {
         'location_updated': '📍 Position mise à jour – actualisation des données...',
         'demo_active': '🎮 MODE DÉMO – données d’exemple (test uniquement)',
         'api_status': 'État API : {status}',
-        # Satellite keys in French
+        # Satellite keys French
         'satellite_mode': '🛰️ Traqueur de satellites',
         'satellite_list': '📋 Positions des satellites',
         'download_all_satellites': '📥 Télécharger toutes les données (CSV)',
@@ -172,6 +174,8 @@ TRANSLATIONS = {
         'sat_pass_location': 'Prédire les passages à :',
         'sat_latitude': 'Latitude',
         'sat_longitude': 'Longitude',
+        'sat_demo_mode': '🎮 Mode démo (données d’exemple – test uniquement)',
+        'sat_demo_active': '🎮 MODE DÉMO – données satellites d’exemple (test uniquement)',
     },
     'es': {
         'app_title': '🔴 RADAR DE VIGILANCIA GLOBAL',
@@ -233,7 +237,7 @@ TRANSLATIONS = {
         'location_updated': '📍 Ubicación actualizada – refrescando datos...',
         'demo_active': '🎮 MODO DEMO – datos de ejemplo (solo pruebas)',
         'api_status': 'Estado API: {status}',
-        # Satellite keys in Spanish
+        # Satellite keys Spanish
         'satellite_mode': '🛰️ Rastreador de satélites',
         'satellite_list': '📋 Posiciones de satélites',
         'download_all_satellites': '📥 Descargar todos los datos (CSV)',
@@ -252,6 +256,8 @@ TRANSLATIONS = {
         'sat_pass_location': 'Predecir pasos en:',
         'sat_latitude': 'Latitud',
         'sat_longitude': 'Longitud',
+        'sat_demo_mode': '🎮 Modo demo (datos de ejemplo – solo pruebas)',
+        'sat_demo_active': '🎮 MODO DEMO – datos de satélite de ejemplo (solo pruebas)',
     },
     'ht': {
         'app_title': '🔴 RADAR SIVEYANS GLOBAL',
@@ -313,7 +319,7 @@ TRANSLATIONS = {
         'location_updated': '📍 Kote mete ajou – ap rafrechi done...',
         'demo_active': '🎮 MÒD DEMO – done egzanp (tès sèlman)',
         'api_status': 'Estati API: {status}',
-        # Satellite keys in Haitian Creole
+        # Satellite keys Haitian Creole
         'satellite_mode': '🛰️ Swiv satelit',
         'satellite_list': '📋 Pozisyon satelit',
         'download_all_satellites': '📥 Telechaje tout done (CSV)',
@@ -332,6 +338,8 @@ TRANSLATIONS = {
         'sat_pass_location': 'Predi pase sou:',
         'sat_latitude': 'Latitid',
         'sat_longitude': 'Longitid',
+        'sat_demo_mode': '🎮 Mòd demonstrasyon (done egzanp – tès sèlman)',
+        'sat_demo_active': '🎮 MÒD DEMO – done satelit egzanp (tès sèlman)',
     },
 }
 
@@ -374,7 +382,7 @@ if 'language' not in st.session_state:
 mode = st.radio("", ["Aircraft Radar", "Satellite Tracker"], horizontal=True)
 
 # -------------------------------------------------------------------
-# Radar helper functions (classification, geometry, fetch, etc.)
+# Classification arrays (radar)
 # -------------------------------------------------------------------
 MILITARY_ICAO_PREFIXES = [
     "AE", "AD", "AF", "3C", "3E", "33", "34", "38", "39", "40", "43", "44", "45", "46", "48",
@@ -436,6 +444,9 @@ def classify_aircraft(icao24, callsign, velocity, altitude, aircraft_type=None):
         "type": type_str
     }
 
+# -------------------------------------------------------------------
+# Radar helper functions
+# -------------------------------------------------------------------
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = radians(lat2 - lat1)
@@ -631,7 +642,7 @@ def create_map(aircraft, radar_lat, radar_lon, max_range_km):
     return fig
 
 # -------------------------------------------------------------------
-# Satellite functions
+# Satellite functions (with demo mode)
 # -------------------------------------------------------------------
 def get_satellite_list():
     return {
@@ -680,43 +691,115 @@ def fetch_all_satellites(api_key, satellite_dict):
         time.sleep(1.5)
     return pd.DataFrame(results)
 
-def fetch_satellite_details(sat_id, api_key, seconds=7200):
-    url = f"https://api.n2yo.com/rest/v1/satellite/positions/{sat_id}/0/0/0/{seconds}/&apiKey={api_key}"
-    try:
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if 'info' in data and 'positions' in data:
-                positions = data['positions']
-                if positions:
-                    return {
-                        'current': positions[0],
-                        'track': positions,
-                        'satname': data['info']['satname']
-                    }
-    except Exception as e:
-        st.error(f"Error fetching details: {e}")
-    return None
+def generate_demo_satellites(satellite_dict, num_extra=3):
+    """Generate demo satellite data for all real satellites plus a few extra random ones."""
+    demo_satellites = []
+    for sat_id, sat_name in satellite_dict.items():
+        lat = random.uniform(-90, 90)
+        lon = random.uniform(-180, 180)
+        alt = random.uniform(300, 40000)
+        speed = random.uniform(0.5, 8)
+        demo_satellites.append({
+            "ID": sat_id,
+            "Name": sat_name,
+            "Latitude": lat,
+            "Longitude": lon,
+            "Altitude (km)": alt,
+            "Speed (km/s)": speed,
+            "Last Update": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    for i in range(num_extra):
+        demo_satellites.append({
+            "ID": 100000 + i,
+            "Name": f"DemoSat-{i+1}",
+            "Latitude": random.uniform(-90, 90),
+            "Longitude": random.uniform(-180, 180),
+            "Altitude (km)": random.uniform(300, 40000),
+            "Speed (km/s)": random.uniform(0.5, 8),
+            "Last Update": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    return pd.DataFrame(demo_satellites)
 
-def fetch_passes(sat_id, lat, lon, api_key, days=2):
-    url = f"https://api.n2yo.com/rest/v1/satellite/visualpasses/{sat_id}/{lat}/{lon}/{0}/{days}/&apiKey={api_key}"
-    try:
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if 'passes' in data:
-                return data['passes']
-    except:
-        pass
-    return []
+def generate_demo_track(sat_id, sat_name, seconds=7200):
+    """Generate a fake ground track for a demo satellite."""
+    start_lat = random.uniform(-80, 80)
+    start_lon = random.uniform(-180, 180)
+    track = []
+    for t in range(0, seconds, 120):  # every 2 minutes
+        lat = start_lat + (t / seconds) * random.uniform(-20, 20)
+        lon = start_lon + (t / seconds) * random.uniform(-40, 40)
+        lat = max(-90, min(90, lat))
+        lon = (lon + 180) % 360 - 180
+        track.append({
+            'satlatitude': lat,
+            'satlongitude': lon,
+            'sataltitude': random.uniform(300, 40000),
+            'satvelocity': random.uniform(0.5, 8),
+            'timestamp': datetime.now().timestamp() + t
+        })
+    return {
+        'current': track[0],
+        'track': track,
+        'satname': sat_name
+    }
+
+def generate_demo_passes(sat_id, user_lat, user_lon, days=2):
+    """Generate fake pass times."""
+    passes = []
+    now = datetime.now()
+    for i in range(5):
+        start = now + timedelta(days=random.uniform(0, days))
+        duration = random.randint(300, 1200)
+        passes.append({
+            'startUTC': start.timestamp(),
+            'endUTC': (start + timedelta(seconds=duration)).timestamp(),
+            'duration': duration,
+            'maxEl': random.randint(10, 90)
+        })
+    return passes
+
+def fetch_satellite_details(sat_id, api_key, seconds=7200, demo_mode=False):
+    if demo_mode:
+        sat_name = next((name for sid, name in get_satellite_list().items() if sid == sat_id), "Demo Satellite")
+        return generate_demo_track(sat_id, sat_name, seconds)
+    else:
+        url = f"https://api.n2yo.com/rest/v1/satellite/positions/{sat_id}/0/0/0/{seconds}/&apiKey={api_key}"
+        try:
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if 'info' in data and 'positions' in data:
+                    positions = data['positions']
+                    if positions:
+                        return {
+                            'current': positions[0],
+                            'track': positions,
+                            'satname': data['info']['satname']
+                        }
+        except Exception as e:
+            st.error(f"Error fetching details: {e}")
+        return None
+
+def fetch_passes(sat_id, lat, lon, api_key, days=2, demo_mode=False):
+    if demo_mode:
+        return generate_demo_passes(sat_id, lat, lon, days)
+    else:
+        url = f"https://api.n2yo.com/rest/v1/satellite/visualpasses/{sat_id}/{lat}/{lon}/{0}/{days}/&apiKey={api_key}"
+        try:
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if 'passes' in data:
+                    return data['passes']
+        except:
+            pass
+        return []
 
 # -------------------------------------------------------------------
 # Mode selection: Aircraft Radar
 # -------------------------------------------------------------------
 if mode == "Aircraft Radar":
-    # -------------------------------------------------------------------
-    # Radar UI (copy of the original radar code, with the sidebar already included)
-    # -------------------------------------------------------------------
+    # Radar UI (same as original)
     st.title(t('app_title'))
     st.markdown(t('subtitle'))
     st.markdown(t('owner'))
@@ -1014,7 +1097,7 @@ Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             unsafe_allow_html=True
         )
 
-    # License already included in sidebar (no need to duplicate)
+    # License (already in sidebar)
 
 # -------------------------------------------------------------------
 # Mode selection: Satellite Tracker
@@ -1028,6 +1111,10 @@ else:
             value="8TGB9U-SLULC9-N5XN43-5P4U",
             help="Get your free key at n2yo.com"
         )
+        sat_demo_mode = st.checkbox(t('sat_demo_mode'), value=False,
+                                    help="Use sample satellite data to test the interface – not real positions.")
+        if sat_demo_mode:
+            st.info(t('sat_demo_active'))
         auto_refresh_sat = st.checkbox(t('sat_auto_refresh'), value=False)
         if auto_refresh_sat:
             refresh_sec_sat = st.number_input(t('sat_refresh_interval'), min_value=10, max_value=300, value=60, step=10)
@@ -1044,19 +1131,24 @@ else:
             st.rerun()
 
     # Satellite main content
-    if not sat_api_key:
-        st.warning("Please enter your N2YO API key to use the satellite tracker.")
+    if not sat_demo_mode and not sat_api_key:
+        st.warning("Please enter your N2YO API key to use the satellite tracker, or enable Demo Mode.")
         st.stop()
 
     satellites_dict = get_satellite_list()
-    with st.spinner(t('fetching_satellites')):
-        df_satellites = fetch_all_satellites(sat_api_key, satellites_dict)
+    if sat_demo_mode:
+        with st.spinner("Generating demo satellite data..."):
+            df_satellites = generate_demo_satellites(satellites_dict, num_extra=5)
+        st.info(t('sat_demo_active'))
+    else:
+        with st.spinner(t('fetching_satellites')):
+            df_satellites = fetch_all_satellites(sat_api_key, satellites_dict)
 
-    if 'Error' in df_satellites.columns:
-        error_rows = df_satellites[df_satellites['Error'].notna()]
-        if not error_rows.empty:
-            st.warning(f"Could not fetch data for: {', '.join(error_rows['Name'])}")
-        df_satellites = df_satellites[df_satellites['Error'].isna()].drop(columns=['Error'], errors='ignore')
+        if 'Error' in df_satellites.columns:
+            error_rows = df_satellites[df_satellites['Error'].notna()]
+            if not error_rows.empty:
+                st.warning(f"Could not fetch data for: {', '.join(error_rows['Name'])}")
+            df_satellites = df_satellites[df_satellites['Error'].isna()].drop(columns=['Error'], errors='ignore')
 
     if df_satellites.empty:
         st.error("No satellite data available. Check your API key or try again later.")
@@ -1079,7 +1171,8 @@ else:
     selected_id = selected_row['ID']
 
     with st.spinner(f"Fetching detailed data for {selected_name}..."):
-        details = fetch_satellite_details(selected_id, sat_api_key, seconds=7200)
+        details = fetch_satellite_details(selected_id, sat_api_key if not sat_demo_mode else None,
+                                          seconds=7200, demo_mode=sat_demo_mode)
 
     if details:
         current = details['current']
@@ -1132,7 +1225,9 @@ else:
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader(t('next_passes'))
-        passes = fetch_passes(selected_id, user_lat, user_lon, sat_api_key, days=2)
+        passes = fetch_passes(selected_id, user_lat, user_lon,
+                              sat_api_key if not sat_demo_mode else None,
+                              days=2, demo_mode=sat_demo_mode)
         if passes:
             df_passes = pd.DataFrame(passes)
             df_passes['startUTC'] = pd.to_datetime(df_passes['startUTC'], unit='s')
@@ -1181,7 +1276,7 @@ Pass predictions over ({user_lat}, {user_lon}): {'See table above' if passes els
             unsafe_allow_html=True
         )
 
-    # License section (common to both modes)
+    # License section (common)
     with st.sidebar:
         st.divider()
         st.markdown(t('license_title'))
